@@ -1,7 +1,11 @@
-import pandas as pd
+from fastapi import FastAPI
+from api import endpoints
 
-# 讀取疫情數據
-data = pd.read_csv('../data/covid19_daily.csv')
+app = FastAPI()
 
-# 檢查數據結構
-print(data.head())
+# 包含所有的 API 路由
+app.include_router(endpoints.router)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

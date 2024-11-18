@@ -1,7 +1,7 @@
 FROM python:3.13-slim
 
-# Copy all project files into the container
-COPY . .
+# Copy requirements file into the container
+COPY requirements.txt .
 
 # Install dependencies specified in requirements.txt
 # Note: When running 'pip install' as root, a warning is generated 
@@ -10,6 +10,11 @@ COPY . .
 # is used to indicate that this behavior is intentional and safe within the Docker context.
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
+# Copy all project files into the container
+COPY . .
+
+ENV PYTHONPATH=/app
+ENV CovidDataCollector_URL=http://localhost:8000/collect
 # Set the working directory to /app
 WORKDIR /app
 
