@@ -4,7 +4,11 @@ on:
   push:
     branches:
       - feature/covid-data-simulator
-  pull_request:
+  workflow_run:
+      workflows:
+        - Build and Test
+      types:
+        - completed
 
 jobs:
   test:
@@ -13,6 +17,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      
+      - name: Download test data
+        uses: actions/download-artifact@v3
+        with:
+          name: test-data
+          path: ./service/CovidDataSimulator/data
       
       - name: check dir
         run: ls -R
