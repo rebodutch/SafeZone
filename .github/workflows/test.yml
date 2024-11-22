@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Print current working directory and list files
+        run: |
+          echo "Current directory: $(pwd)" 
+          ls -R
+
       - name: Checkout code
         uses: actions/checkout@v3
 
