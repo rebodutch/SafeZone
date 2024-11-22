@@ -1,7 +1,7 @@
 FROM python:3.13-slim
 
 # Copy requirements file into the container
-COPY requirements.txt .
+COPY /test/requirements.txt .
 
 # Install dependencies specified in requirements.txt
 # Note: When running 'pip install' as root, a warning is generated 
@@ -12,10 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
 # Copy all project files into the container
 COPY app /app
+COPY test /test
 
 ENV PYTHONPATH=/app
 ENV CovidDataCollector_URL="http://localhost:8000/collect"
 ENV SERVER_IP="0.0.0.0"
 ENV SERVER_PORT=6000
-
-WORKDIR /app

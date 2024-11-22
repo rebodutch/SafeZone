@@ -1,38 +1,59 @@
 #!/bin/bash
-# Step 1: 設定變數
+set -e
+
+# Step 1: set variables
 IMAGE_NAME="covid_data_simulator"
+IMAGE_TAG="test"
 CONTAINER_NAME="covid_data_simulator"
 DOCKERFILE_PATH="./services/CovidDataSimulator"
+TEST_PATH="./services/CovidDataSimulator/test"
 
-# Step 2: 編譯（如果需要，這裡示範 Python 環境通常不需要編譯）
+# Step 2: compile
 echo "No explicit compilation step required for Python..."
 
-# Step 3: 建置 Docker 映像
+# Step 3: build docker image
 echo "Building Docker image..."
-docker build -t $IMAGE_NAME $DOCKERFILE_PATH
+docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f "$DOCKERFILE_PATH/Dockerfile.test" "$DOCKERFILE_PATH"
 
-# Step 4: 停止並移除現有容器
-if [ $(docker ps -aq -f name=$CONTAINER_NAME) ]; then
+# Step 4: stop the container if it is running from previous scripts
+if [ "$(docker ps -aq -f name="$CONTAINER_NAME")" ]; then
     echo "Stopping existing container..."
-    docker stop $CONTAINER_NAME
+    docker stop "$CONTAINER_NAME"
 
     echo "Removing existing container..."
-    docker rm $CONTAINER_NAME
+    docker rm "$CONTAINER_NAME"
 fi
 
-# Step 5: 運行 Docker 容器做測試
-# 運行單元測試
+# Step 5: run the tests in the container
+# mkdir for test results
+mkdir -p "$TEST_PATH/results"
+
+# unit test
 echo "Running unit tests..."
-docker run --rm --name $CONTAINER_NAME $IMAGE_NAME pytest services/test/
+docker run --rm \
+  -v "$(pwd)/services/CovidDataSimulator/data/test_data:/app/data" \
+  -v "$(pwd)/$TEST_PATH/results:/test/results" \
+  --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+  pytest test/unit_test --junitxml=/test/results/unit_test_results.xml
+UNIT_TEST_EXIT_CODE=$?
 
-# Step 5: 運行 Docker 容器（使其在後台運行，提供測試所需的服務）
-echo "Starting Docker container..."
-docker run -d --name $CONTAINER_NAME -p $HOST_PORT:$CONTAINER_PORT $IMAGE_NAME
+if [ $UNIT_TEST_EXIT_CODE -ne 0 ]; then
+    echo "Unit tests failed with exit code $UNIT_TEST_EXIT_CODE"
+    exit $UNIT_TEST_EXIT_CODE
+fi
 
-# 等待幾秒讓服務啟動
-echo "Waiting for the service to start..."
-sleep 5
-
-# 運行集成測試
+# integration test
 echo "Running integration tests..."
-docker run --rm --name $CONTAINER_NAME $IMAGE_NAME pytest test/test_main.py
+docker run --rm \
+  -v "$(pwd)/services/CovidDataSimulator/data/test_data:/app/data" \
+  -v "$(pwd)/$TEST_PATH/results:/test/results" \
+  --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+  pytest test/integration_test --junitxml=/test/results/integration_test_results.xml
+INTEGRATION_TEST_EXIT_CODE=$?
+
+if [ $INTEGRATION_TEST_EXIT_CODE -ne 0 ]; then
+    echo "Integration tests failed with exit code $INTEGRATION_TEST_EXIT_CODE"
+    exit $INTEGRATION_TEST_EXIT_CODE
+fi
+
+echo "All tests passed successfully!"
