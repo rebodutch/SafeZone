@@ -1,0 +1,21 @@
+name: Run Tests with Docker
+
+on:
+  push:
+    branches:
+      - feature/covid-data-simulator
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Make the script executable
+        run: chmod +x ./scripts/CovidDataSimulator/build_and_tesh.sh
+
+      - name: Run Dockerized Tests
+        run: make build-and-test-covid-simulator 
