@@ -20,5 +20,5 @@ jobs:
       - name: Make the script executable
         run: chmod +x ./scripts/CovidDataSimulator/build_and_test.sh
 
-      # - name: Run Dockerized Tests
-      #   run: make build-and-test-covid-simulator 
+      - name: Run Dockerized Tests
+        run: make build-and-test-covid-simulator 
