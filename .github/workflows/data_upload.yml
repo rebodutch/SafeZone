@@ -13,5 +13,5 @@ jobs:
       - name: Upload test data as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: data
+          name: test-data
           path: /service/CovidDataSimulator/data
