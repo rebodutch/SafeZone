@@ -13,7 +13,13 @@ jobs:
     steps:
       - name: check path
         run: pwd
-
+      
+      - name: cd ..
+        run: cd ..
+      
+      - name: check path1
+        run: pwd
+      
       - name: check dir
         run: ls -R
       # - name: Checkout code
