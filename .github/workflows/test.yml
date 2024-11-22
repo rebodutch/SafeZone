@@ -11,16 +11,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
       - name: Print current working directory and list files
         run: |
           echo "Current directory: $(pwd)" 
           ls -R
 
-      - name: Checkout code
-        uses: actions/checkout@v3
-
       - name: Make the script executable
-        run: chmod +x ./scripts/CovidDataSimulator/build_and_tesh.sh
+        run: chmod +x scripts/CovidDataSimulator/build_and_test.sh
 
       - name: Run Dockerized Tests
         run: make build-and-test-covid-simulator 
