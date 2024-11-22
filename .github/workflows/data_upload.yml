@@ -14,4 +14,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: test-data
-          path: /service/CovidDataSimulator/data
+          path: ./service/CovidDataSimulator/data
