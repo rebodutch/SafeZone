@@ -1,0 +1,28 @@
+[
+    {
+        "test_describes": "Daily data send test in correct senario",
+        "component_under_test": "data_sender",
+        "expected_status_code": 200,
+        "expected_response": "Data sent successfully!",
+        "data": [
+            {
+                "date": "2023-03-20",
+                "city": "台北市",
+                "region": "中山區",
+                "cases": 1
+            },
+            {
+                "date": "2023-03-20",
+                "city": "台北市",
+                "region": "中山區",
+                "cases": 1
+            },
+            {
+                "date": "2023-03-20",
+                "city": "台北市",
+                "region": "信義區",
+                "cases": 5
+            }
+        ]
+    }
+]

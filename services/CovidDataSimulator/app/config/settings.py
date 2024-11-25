@@ -1,4 +1,4 @@
-# app/config.py
+# app/config/settings.py
 import os
 
 Server_IP = os.getenv("Server_IP", "0.0.0.0")

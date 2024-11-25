@@ -1,9 +1,10 @@
 # app/services/data_productor.py
 import pandas as pd
+from common.custom_exceptions.exceptions import EmptyDataException
 
 def read_csv():
-    data = pd.read_csv("/app/data/covid_data.csv")
-    print(data)
+    data = pd.read_csv("/data/covid_data.csv")
+
     # Keep only useful information in the data
     selected_columns = ["個案研判日", "縣市", "鄉鎮", "確定病例數"]
     data = data[selected_columns]
@@ -28,13 +29,18 @@ def read_csv():
 def get_data_by_date(date):
     data = read_csv()
     # Filter data for a specific date
-    filter_data = data[data["date"] == date]
-    return filter_data.to_dict(orient="records")
-
+    filtered_data = data[data["date"] == date]
+    if filtered_data.empty:
+        print("EmptyDataException")
+        raise EmptyDataException
+    return filtered_data.to_dict(orient="records")
 
 
 def get_data_by_interval(start_date, end_date):
     data = read_csv()
     # Filter data for a specific date range
-    filter_data = data[(data["date"] >= start_date) & (data["date"] <= end_date)]
-    return filter_data.to_dict(orient="records")
+    filtered_data = data[(data["date"] >= start_date) & (data["date"] <= end_date)]
+    if filtered_data.empty:
+        print("EmptyDataException")
+        raise EmptyDataException
+    return filtered_data.to_dict(orient="records")

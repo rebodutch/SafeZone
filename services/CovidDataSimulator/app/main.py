@@ -1,7 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from api import endpoints
-from config import Server_IP, Server_PORT
+from config.settings import Server_IP, Server_PORT
 import uvicorn
 
 app = FastAPI()

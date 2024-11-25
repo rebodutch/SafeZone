@@ -1,10 +1,11 @@
 # app/api/endpoints.py
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from services.request_handler import handle_daily_request, handle_interval_request
-from services.exception_handler import handle_exceptions
-import traceback
+from services.pipeline import handle_daily_request, handle_interval_request
+from common.custom_exceptions.handler import handle_exceptions
+
 router = APIRouter()
+
 
 @router.get("/simulate/daily")
 async def simulate_daily(date: str):
@@ -16,10 +17,6 @@ async def simulate_daily(date: str):
         }
         return JSONResponse(content=response, status_code=200)
     except Exception as e:
-        print(f"Exception type: {type(e).__name__}")
-        print(f"Exception message: {e}")
-        print("Traceback:")
-        traceback.print_exc()
         return handle_exceptions(e)
 
 
