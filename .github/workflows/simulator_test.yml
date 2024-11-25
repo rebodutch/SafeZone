@@ -1,14 +1,9 @@
-name: Run Tests with Docker
+name: Run Tests Simulator with Docker
 
 on:
   push:
     branches:
       - feature/covid-data-simulator
-  # workflow_run:
-  #     workflows:
-  #       - Upload Test Data
-  #     types:
-  #       - completed
 
 jobs:
   test:
@@ -17,12 +12,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
-      # - name: Download test data
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: test-data
-      #     path: ./service/CovidDataSimulator/data
       
       - name: check dir
         run: ls -R
