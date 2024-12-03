@@ -2,11 +2,11 @@
 set -e
 
 # Step 1: set variables
-IMAGE_NAME="covid_data_simulator"
+IMAGE_NAME="covid_data_collector"
 IMAGE_TAG="test"
-CONTAINER_NAME="covid_data_simulator"
-DOCKERFILE_PATH="./services/CovidDataSimulator/environments/test"
-TEST_PATH="./services/CovidDataSimulator/environments/test/tests"
+CONTAINER_NAME="covid_data_collector"
+DOCKERFILE_PATH="./services/CovidDataCollector/environments/test"
+TEST_PATH="./services/CovidDataCollector/environments/test/tests"
 
 # Step 2: compile
 echo "No explicit compilation step required for Python..."
@@ -24,11 +24,23 @@ if [ "$(docker ps -aq -f name="$CONTAINER_NAME")" ]; then
     docker rm "$CONTAINER_NAME"
 fi
 
-# Step 5: run the tests in the container
+# step 5: intialize the database and export the db file
+echo "Initializing the database..."
+# if the db file already doesnt exists, then create it
+if [ ! -f "$(pwd)/services/CovidDataCollector/environments/test/db/test.db" ]; then
+    docker run --rm \
+    -v "$(pwd)/utils:/app/utils" \
+    -v "$(pwd)/services/CovidDataCollector/environments/test/db:/db" \
+    --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+    python3 /app/utils/db/init_db.py
+fi
+
+
+# Step 6: run the tests in the container
 # unit test
 echo "Running unit tests..."
 docker run --rm \
-  -v "$(pwd)/services/CovidDataSimulator/environments/test/data:/data" \
+  -v "$(pwd)/services/CovidDataCollector/environments/test/data:/data" \
   -v "$(pwd)/utils:/app/utils" \
   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
   pytest test/unit_test
@@ -36,7 +48,7 @@ docker run --rm \
 # integration test
 echo "Running integration tests..."
 docker run --rm \
-  -v "$(pwd)/services/CovidDataSimulator/environments/test/data:/data" \
+  -v "$(pwd)/services/CovidDataCollector/environments/test/data:/data" \
   -v "$(pwd)/utils:/app/utils" \
   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
   pytest test/integration_test

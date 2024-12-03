@@ -1,5 +1,4 @@
 # /test/unit_test/test_data_sender
-import requests_mock
 import json
 import pytest
 from services.data_sender import send_data
