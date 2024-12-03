@@ -1,6 +1,6 @@
 # app/services/date_checker.py
 from datetime import datetime
-from common.custom_exceptions.exceptions import InvalidDateFormatException, InvalidDateRangeException
+from utils.custom_exceptions.exceptions import InvalidDateFormatException, InvalidDateRangeException
 
 def check_date(date):
     try:

@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from services.pipeline import handle_daily_request, handle_interval_request
-from common.custom_exceptions.handler import handle_exceptions
+from utils.custom_exceptions.handler import handle_exceptions
 
 router = APIRouter()
 

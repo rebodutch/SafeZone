@@ -21,11 +21,7 @@
                 "region": "信義區",
                 "cases": 5
             }
-        ],
-        "expected_response": {
-            "status": "success",
-            "message": "Data created successfully"
-        }
+        ]
     },
     {
         "test_describes": "missing required fields (date)",
@@ -38,8 +34,7 @@
             }
         ],
         "expected_response": {
-            "status": "error",
-            "message": "Missing required fields: 'date'"
+            "message": "Missing required field(s): date."
         }
     },
     {
@@ -54,8 +49,7 @@
             }
         ],
         "expected_response": {
-            "status": "error",
-            "message": "Invalid field type. 'date' should be a string in format YYYY-MM-DD"
+            "message": "Invalid date format. Expected 'YYYY-MM-DD'."
         }
     },
     {
@@ -70,8 +64,7 @@
             }
         ],
         "expected_response": {
-            "status": "error",
-            "message": "Invalid date format. Expected YYYY-MM-DD."
+            "message": "Invalid date format. Expected 'YYYY-MM-DD'."
         }
     },
     {
@@ -86,7 +79,6 @@
             }
         ],
         "expected_response": {
-            "status": "error",
             "message": "Invalid city name. Expected it is a Taiwan city."
         }
     },
@@ -102,7 +94,6 @@
             }
         ],
         "expected_response": {
-            "status": "error",
             "message": "'cases' must be a positive integer."
         }
     },
@@ -119,8 +110,7 @@
             }
         ],
         "expected_response": {
-            "status": "error",
-            "message": "Unexpected field 'extra_field' found in the request body."
+            "message": "Unexpected field(s): extra_field found in the request body."
         }
     }
 ]

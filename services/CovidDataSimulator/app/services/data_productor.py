@@ -1,6 +1,6 @@
 # app/services/data_productor.py
 import pandas as pd
-from common.custom_exceptions.exceptions import EmptyDataException
+from utils.custom_exceptions.exceptions import EmptyDataException
 
 def read_csv():
     data = pd.read_csv("/data/covid_data.csv")

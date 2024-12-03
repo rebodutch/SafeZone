@@ -2,7 +2,7 @@
 import json
 import pytest
 from services.data_productor import get_data_by_date, get_data_by_interval
-from common.custom_exceptions.exceptions import EmptyDataException
+from utils.custom_exceptions.exceptions import EmptyDataException
 
 # import test cases
 with open("/test/cases/test_data_product.json", encoding="utf-8") as f:
