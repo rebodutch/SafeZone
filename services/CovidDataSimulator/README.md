@@ -6,7 +6,7 @@ CovidDataSimulator is a service designed to simulate daily COVID-19 data, filter
 ## **Features**
 - Simulates daily or batch COVID-19 data.
 - Filters data with customizable criteria (e.g., date).
-- Sends the simulated data to a specified endpoint (e.g., CovidDataCollector).
+- Sends the simulated data to a specified endpoint (e.g., CovidDataIngestor).
 
 ---
 

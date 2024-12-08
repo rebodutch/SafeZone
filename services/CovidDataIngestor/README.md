@@ -1,7 +1,7 @@
-# CovidDataCollector
+# CovidDataIngestor
 
 ## 簡介
-CovidDataCollector 是一個用於收集模擬疫情數據的服務，該服務使用 Python 開發，並基於 FastAPI 框架來實現 API 端點。該服務能夠接收、驗證、保存疫情相關的數據，以便進一步的處理和分析。
+CovidDataIngestor 是一個用於收集模擬疫情數據的服務，該服務使用 Python 開發，並基於 FastAPI 框架來實現 API 端點。該服務能夠接收、驗證、保存疫情相關的數據，以便進一步的處理和分析。
 
 ## 目錄結構
 - **app**: 主應用程序的源代碼。
@@ -23,7 +23,7 @@ CovidDataCollector 是一個用於收集模擬疫情數據的服務，該服務�
 1. **克隆專案**
    ```bash
    git clone <repository-url>
-   cd CovidDataCollector
+   cd CovidDataIngestor
    ```
 
 2. **選擇環境並構建 Docker 映像**

@@ -32,6 +32,7 @@ async def collect(data: List[dict], content_type_check: None = Depends(type_chec
         logger.info("Data collection request received.")
         
         handle_request(data)
+        
         response = {
             "message": "Data collected successfully",
         }
