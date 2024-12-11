@@ -1,6 +1,6 @@
 # app/services/data_productor.py
 import pandas as pd
-from utils.custom_exceptions.exceptions import EmptyDataException
+from exceptions.custom_exceptions import EmptyDataError
 
 def read_csv():
     data = pd.read_csv("/data/covid_data.csv")
@@ -32,7 +32,7 @@ def get_data_by_date(date):
     filtered_data = data[data["date"] == date]
     if filtered_data.empty:
         print("EmptyDataException")
-        raise EmptyDataException
+        raise EmptyDataError
     return filtered_data.to_dict(orient="records")
 
 
@@ -42,5 +42,5 @@ def get_data_by_interval(start_date, end_date):
     filtered_data = data[(data["date"] >= start_date) & (data["date"] <= end_date)]
     if filtered_data.empty:
         print("EmptyDataException")
-        raise EmptyDataException
+        raise EmptyDataError
     return filtered_data.to_dict(orient="records")

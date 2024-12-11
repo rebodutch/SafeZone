@@ -1,7 +1,7 @@
 import json
 import pytest
 from fastapi.testclient import TestClient
-from config.settings import CovidDataIngestor_URL
+from config.settings import INGESTOR_URL
 from main import app
 
 client = TestClient(app)
@@ -20,9 +20,9 @@ def test_data_product(case, requests_mock):
     # Mock CovidDataIngestor behavior by returning a predefined response if 'expected_response' is present in the test case
     if "expected_response" in case:
         mock_response = case["expected_response"]
-        requests_mock.post(CovidDataIngestor_URL, json=mock_response)
+        requests_mock.post(INGESTOR_URL, json=mock_response)
     else:
-        requests_mock.post(CovidDataIngestor_URL, json={})
+        requests_mock.post(INGESTOR_URL, json={})
 
     # Handle daily requests
     if endpoint == "/simulate/daily":

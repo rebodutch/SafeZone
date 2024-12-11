@@ -1,8 +1,8 @@
 # /test/unit_test/test_data_sender
 import json
 import pytest
-from services.data_sender import send_data
-from config.settings import CovidDataIngestor_URL 
+from pipeline.data_sender import send_data
+from config.settings import INGESTOR_URL
 
 # import test cases
 with open("/test/cases/test_data_sender.json", encoding="utf-8") as f:
@@ -11,7 +11,7 @@ with open("/test/cases/test_data_sender.json", encoding="utf-8") as f:
 # testing case by case
 @pytest.mark.parametrize("case", test_cases, ids=lambda case: case["test_describes"])
 def test_send_data(case, requests_mock):
-    mock_url = CovidDataIngestor_URL
+    mock_url = INGESTOR_URL
     # simulate request by requests_mock 
     requests_mock.post(mock_url, json=case["expected_response"], status_code=case["expected_status_code"])
 
