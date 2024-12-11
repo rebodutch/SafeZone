@@ -1,6 +1,5 @@
 # app/services/data_validator.py
-from services.data_validator import validate_datas
-from services.data_creator import create_cases
+from pipeline.data_creator import create_case
 
 def handle_request(data):
     """
@@ -12,10 +11,7 @@ def handle_request(data):
 
     Returns:
         None, but it pipeline somtiomes raise exceptions, it will be handle in endpoint.
-    """  
-    # validate the data
-    validate_datas(data)
-  
+    """    
     # store data into the database
-    create_cases(data)
+    create_case(data)
     

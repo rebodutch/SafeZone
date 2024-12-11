@@ -1,9 +1,13 @@
 # app/config/logger.py
 import logging
 from logging.handlers import RotatingFileHandler
+from config.settings import LOG_LEVEL, MAX_LOG_FILE_SIZE
 
-MAX_LOG_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
-LOG_LEVEL = logging.DEBUG
+# Default log level is DEBUG
+if LOG_LEVEL == "DEBUG":
+    LOG_LEVEL = logging.DEBUG
+else:
+    LOG_LEVEL = logging.INFO
 
 logger = logging.getLogger("logs/app.logger")
 

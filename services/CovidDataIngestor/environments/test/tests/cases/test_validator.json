@@ -34,6 +34,7 @@
             }
         ],
         "expected_response": {
+            "error": "ValidationError",
             "message": "Missing required field(s): date."
         }
     },
@@ -49,6 +50,7 @@
             }
         ],
         "expected_response": {
+            "error": "ValidationError",
             "message": "Invalid date format. Expected 'YYYY-MM-DD'."
         }
     },
@@ -64,6 +66,7 @@
             }
         ],
         "expected_response": {
+            "error": "ValidationError",
             "message": "Invalid date format. Expected 'YYYY-MM-DD'."
         }
     },
@@ -79,6 +82,7 @@
             }
         ],
         "expected_response": {
+            "error": "ValidationError",
             "message": "Invalid city name. Expected it is a Taiwan city."
         }
     },
@@ -94,6 +98,7 @@
             }
         ],
         "expected_response": {
+            "error": "ValidationError",
             "message": "'cases' must be a positive integer."
         }
     },
@@ -110,6 +115,7 @@
             }
         ],
         "expected_response": {
+            "error": "ValidationError",
             "message": "Unexpected field(s): extra_field found in the request body."
         }
     }

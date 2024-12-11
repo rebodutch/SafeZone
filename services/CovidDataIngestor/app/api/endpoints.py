@@ -1,24 +1,25 @@
 # app/api/endpoints.py
-from typing import List
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from services.pipeline import handle_request
-from utils.custom_exceptions.handler import handle_exceptions
-from utils.custom_exceptions.exceptions import InvalidContentTypeException
+from pydantic import ValidationError
+
+from validators.api_validator import CollectValidator
+from exceptions.custom_exceptions import InvalidContentTypeException, APIValidationError
+from pipeline.orchestrator import handle_request
 from config.logger import get_logger
 
 router = APIRouter()
 logger = get_logger()
 
+
 def type_checker(request: Request):
-    try:
-        if request.headers.get("content-type") != "application/json":
-            raise InvalidContentTypeException()
-    except InvalidContentTypeException as e:
-        return handle_exceptions(e)
+    print(request.headers.get("content-type"))
+    if request.headers.get("content-type") != "application/json":
+        raise InvalidContentTypeException()
+
 
 @router.post("/collect")
-async def collect(data: List[dict], content_type_check: None = Depends(type_checker)):
+async def collect(data: dict, content_type_check: None = Depends(type_checker)):
     """
     Collect data from the request and handle it.
 
@@ -28,15 +29,19 @@ async def collect(data: List[dict], content_type_check: None = Depends(type_chec
     Returns:
         JSONResponse: A JSON response indicating the success or failure of the data collection.
     """
+    logger.info("Received request to collect data.")
+
+    # validate the data in the request body
     try:
-        logger.info("Data collection request received.")
-        
-        handle_request(data)
-        
-        response = {
-            "message": "Data collected successfully",
-        }
-        logger.info("Data collection request handle success.")
-        return JSONResponse(content=response, status_code=200)
-    except Exception as e:
-        return handle_exceptions(e)
+        CollectValidator(**data)
+    except ValidationError as e:
+        raise APIValidationError(e)
+
+    handle_request(data)
+
+    response = {
+        "status": "success",
+        "message": "Data collected successfully",
+    }
+    logger.info("Data collection request handle success.")
+    return JSONResponse(content=response, status_code=200)

@@ -43,34 +43,32 @@ def test_data_product(case, db_session, logger):
     if result.status_code != 200:
         assert result.status_code == case["expected_response"]["status_code"]
         assert result.json()["detail"] == case["expected_response"]["message"]
-    else:    
-        # check the data in the database
-        for row in case["data"]:
-            # get the city id
-            city_query = select(cities).where(
-                cities.c.name == row["city"]
-            )
-            city_result = db_session.execute(city_query).fetchone()
-            # check if the city is in the database
-            if city_result is None:
-                assert False, f"City '{row['city']}' not found in the database"
-            city_id = city_result.id
-            
-            # get the region id
-            region_query = select(regions).where(
-                regions.c.name == row["region"],
-                regions.c.city_id == city_id)
-            region_result = db_session.execute(region_query).fetchone()
-            # check if the region is in the database
-            if region_result is None:
-                assert False, f"Region '{row['region']}' not found in the database"
-            region_id = region_result.id
-            
-            # get the covid cases data by expected data fields
-            query = select(covid_cases).where(
-                covid_cases.c.city_id == city_id,
-                covid_cases.c.region_id == region_id,
-                covid_cases.c.date == row["date"],
-                covid_cases.c.cases == row["cases"])
-            if db_session.execute(query).fetchone() is None:
-                assert False, "Covid case data not found in the database"
+    else:            
+        # get the city id
+        city_query = select(cities).where(
+            cities.c.name == case['data']["city"]
+        )
+        city_result = db_session.execute(city_query).fetchone()
+        # check if the city is in the database
+        if city_result is None:
+            assert False, f"City '{case['data']["city"]}' not found in the database"
+        city_id = city_result.id
+        
+        # get the region id
+        region_query = select(regions).where(
+            regions.c.name == case['data']["region"],
+            regions.c.city_id == city_id)
+        region_result = db_session.execute(region_query).fetchone()
+        # check if the region is in the database
+        if region_result is None:
+            assert False, f"Region '{case['data']["region"],}' not found in the database"
+        region_id = region_result.id
+        
+        # get the covid cases data by expected data fields
+        query = select(covid_cases).where(
+            covid_cases.c.city_id == city_id,
+            covid_cases.c.region_id == region_id,
+            covid_cases.c.date == case['data']["date"],
+            covid_cases.c.cases == case['data']["cases"],)
+        if db_session.execute(query).fetchone() is None:
+            assert False, "Covid case data not found in the database"
