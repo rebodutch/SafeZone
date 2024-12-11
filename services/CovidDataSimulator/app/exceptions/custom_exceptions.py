@@ -6,9 +6,9 @@ class APIValidationError(Exception):
         super().__init__(f"a validation error occurred in the API")
 
 class ServiceValidationError(Exception):
-   def __init__(self, original_error: ValidationError):
-        self.errors = original_error.json(indent=2)
-        super().__init__(f"a validation error occurred in the Service")
+   def __init__(self, exc: ValidationError):
+        self.errors = exc.errors()
+        super().__init__(f"a validation error occurred in the API")
 
 class InvalidDateRangeError(Exception):
     def __init__(

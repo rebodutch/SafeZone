@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from pipeline.orchestrator import handle_daily_request, handle_interval_request
-from validators.input_validator import DateInput, IntervalInput
+from validators.api_validator import DailyValidator, IntervalValidator
 from exceptions.custom_exceptions import APIValidationError
 from config.logger import get_logger
 
@@ -16,7 +16,7 @@ async def simulate_daily(date: str):
     logger.info(f"Received request to simulate daily data for date {date}")
     
     try:
-        DateInput(date=date)
+        DailyValidator(date=date)
     except ValidationError as e:
         raise  APIValidationError(e)
     
@@ -36,7 +36,7 @@ async def simulate_interval(start_date: str, end_date: str):
     )
 
     try:
-        IntervalInput(start_date=start_date, end_date=end_date)
+        IntervalValidator(start_date=start_date, end_date=end_date)
     except ValidationError as e:
         raise APIValidationError(e)
     
