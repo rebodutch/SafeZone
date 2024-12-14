@@ -2,9 +2,14 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 from config.settings import INGESTOR_URL
+from config.logger import get_logger
 from main import app
 
 client = TestClient(app)
+
+@pytest.fixture(scope="module")
+def logger():
+    return get_logger()
 
 # Import test cases
 with open("/test/cases/test_integration.json", encoding="utf-8") as f:
@@ -13,7 +18,7 @@ with open("/test/cases/test_integration.json", encoding="utf-8") as f:
 
 # Testing case by case
 @pytest.mark.parametrize("case", test_cases, ids=lambda case: case["test_describes"])
-def test_data_product(case, requests_mock):
+def test_data_product(case, requests_mock, logger):
 
     endpoint = case["endpoint"]
 
@@ -34,6 +39,7 @@ def test_data_product(case, requests_mock):
         assert response.status_code == case["expected_status_code"]
 
         if "expected_response" in case:
+
             assert response.json() == case["expected_response"]
 
     # Handle interval requests
@@ -52,6 +58,8 @@ def test_data_product(case, requests_mock):
         assert response.status_code == case["expected_status_code"]
 
         if "expected_response" in case:
+            logger.debug(response.json())
+            logger.debug(case["expected_response"])
             assert response.json() == case["expected_response"]
 
     # Handle endpoints that are not /simulate/daily or /simulate/interval

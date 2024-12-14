@@ -14,4 +14,5 @@ RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 COPY services/CovidDataSimulator/app /app
 COPY services/CovidDataSimulator/environments/test/tests /test
 
+ENV LOGGING_LEVEL=DEBUG
 ENV PYTHONPATH=/app

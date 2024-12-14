@@ -5,8 +5,11 @@
         "date": "2023-03-20",
         "expected_status_code": 200,
         "expected_response": {
-            "status": "success",
-            "message": "Data sent successfully for date 2023-03-20"
+            "data": {
+                "detail": "Data sent successfully for date 2023-03-20."
+            },
+            "message": "Data sent successfully",
+            "success": true
         }
     },
     {
@@ -16,8 +19,11 @@
         "end_date": "2023-04-05",
         "expected_status_code": 200,
         "expected_response": {
-            "status": "success",
-            "message": "Data sent successfully for dates 2023-03-20 ~ 2023-04-05"
+            "data": {
+                "detail": "Data sent successfully for dates 2023-03-20 ~ 2023-04-05."
+            },
+            "message": "Data sent successfully",
+            "success": true
         }
     },
     {
@@ -75,8 +81,11 @@
         "end_date": "2023-03-20",
         "expected_status_code": 200,
         "expected_response": {
-            "status": "success",
-            "message": "Data sent successfully for dates 2023-03-20 ~ 2023-03-20"
+            "data": {
+                "detail": "Data sent successfully for dates 2023-03-20 ~ 2023-03-20."
+            },
+            "message": "Data sent successfully",
+            "success": true
         }
     }
 ]
