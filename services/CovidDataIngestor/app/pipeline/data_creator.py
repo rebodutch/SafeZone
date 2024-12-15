@@ -48,7 +48,7 @@ def create_case(case):
 
             # create covid case
             covid_case = CovidCase(
-                date=datetime.strptime(case["date"], "%Y-%m-%d").date(),
+                date=case["date"],
                 city_id=city.id,
                 region_id=region.id,
                 cases=case["cases"],

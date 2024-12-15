@@ -42,7 +42,7 @@ def test_data_product(case, db_session, logger):
     # the error cases
     if result.status_code != 200:
         assert result.status_code == case["expected_response"]["status_code"]
-        assert result.json()["detail"] == case["expected_response"]["message"]
+        assert result.json() == case["expected_response"]["response"]
     else:            
         # get the city id
         city_query = select(cities).where(

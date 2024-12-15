@@ -1,10 +1,9 @@
 # app/api/endpoints.py
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
 
-from validators.api_validator import CollectValidator
-from exceptions.custom_exceptions import InvalidContentTypeException, APIValidationError
+from exceptions.custom_exceptions import InvalidContentTypeException
+from api.schemas import APIResponse, CollectData
 from pipeline.orchestrator import handle_request
 from config.logger import get_logger
 
@@ -18,30 +17,28 @@ def type_checker(request: Request):
         raise InvalidContentTypeException()
 
 
-@router.post("/collect")
-async def collect(data: dict, content_type_check: None = Depends(type_checker)):
-    """
-    Collect data from the request and handle it.
-
-    Args:
-        data (List[dict]): A list of dictionaries containing the data to be collected.
-            "message": "Data collected successfully",
-    Returns:
-        JSONResponse: A JSON response indicating the success or failure of the data collection.
-    """
+@router.post("/collect", response_model=APIResponse)
+async def collect(
+    payload: CollectData, content_type_check: None = Depends(type_checker)
+):
     logger.info("Received request to collect data.")
 
-    # validate the data in the request body
-    try:
-        CollectValidator(**data)
-    except ValidationError as e:
-        raise APIValidationError(e)
+    data = payload.model_dump()
+    logger.debug(f"Request data: {data}")
 
     handle_request(data)
 
-    response = {
-        "status": "success",
-        "message": "Data collected successfully",
-    }
+    response = APIResponse(
+        success=True,
+        message="Data created successfully",
+        data={
+            "detail": f"The data was created in the database successfully."
+        },
+    )
     logger.info("Data collection request handle success.")
-    return JSONResponse(content=response, status_code=200)
+    
+    return JSONResponse(
+        content=response.model_dump(exclude_none=True),
+        status_code=200,
+    )
+

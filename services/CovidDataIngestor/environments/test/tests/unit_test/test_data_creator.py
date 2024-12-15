@@ -2,6 +2,7 @@ import json
 import pytest
 from sqlalchemy import create_engine, select, and_
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from config.settings import DB_URL
 from utils.db.schema import covid_cases, cities, regions
@@ -44,6 +45,7 @@ def test_data_creator(case, db_session, logger):
     """
     try:
         for row in case["data"]:
+            row["date"] = datetime.strptime(row["date"], "%Y-%m-%d").date()
             create_case(row)
     # check dataduplicate exception is raised when inserting duplicate data
     except DataDuplicateException as e:
@@ -86,7 +88,7 @@ def test_data_creator(case, db_session, logger):
     # get the covid cases data by expected data fields
     query = select(covid_cases).where(
         and_(
-            covid_cases.c.date == case["expected_response"]["date"],
+            covid_cases.c.date == datetime.strptime(case["expected_response"]["date"], "%Y-%m-%d").date(),
             covid_cases.c.city_id == city_id,
             covid_cases.c.region_id == region_id,
         )

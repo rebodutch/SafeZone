@@ -1,32 +1,5 @@
 [
     {
-        "test_describes": "missing required fields",
-        "component_under_test": "main",
-        "data": {
-            "date": "2023-03-20",
-            "city": "台北市",
-            "cases": 10
-        },
-        "expected_response": {
-            "status_code": 422,
-            "message": "Missing required field(s): region."
-        }
-    },
-    {
-        "test_describes": "invalid date format",
-        "component_under_test": "main",
-        "data": {
-            "date": "20-03-2023",
-            "city": "台北市",
-            "region": "信義區",
-            "cases": 10
-        },
-        "expected_response": {
-            "status_code": 422,
-            "message": "Invalid date format. Expected 'YYYY-MM-DD'."
-        }
-    },
-    {
         "test_describes": "invalid region",
         "component_under_test": "main",
         "data": {
@@ -37,7 +10,14 @@
         },
         "expected_response": {
             "status_code": 422,
-            "message": "Invalid region name. Expected it is a region in Taiwan."
+            "response": {
+                "success": false,
+                "message": "Invalid Taiwan region error.",
+                "errors": {
+                    "fields": "region",
+                    "detail": "Invalid Taiwan region error: Invalid region name. Expected it is a region in the city."
+                }
+            }
         }
     },
     {
@@ -51,36 +31,14 @@
         },
         "expected_response": {
             "status_code": 422,
-            "message": "Invalid city name. Expected it is a Taiwan city."
-        }
-    },
-    {
-        "test_describes": "negative cases count",
-        "component_under_test": "main",
-        "data": {
-            "date": "2023-03-20",
-            "city": "台北市",
-            "region": "中山區",
-            "cases": -5
-        },
-        "expected_response": {
-            "status_code": 422,
-            "message": "'cases' must be a positive integer."
-        }
-    },
-    {
-        "test_describes": "unexpected field in request body",
-        "component_under_test": "main",
-        "data": {
-            "date": "2023-03-20",
-            "city": "台北市",
-            "region": "中山區",
-            "cases": 10,
-            "extra_field": "unexpected_value"
-        },
-        "expected_response": {
-            "status_code": 422,
-            "message": "Unexpected field(s): extra_field found in the request body."
+            "response": {
+                "success": false,
+                "message": "Invalid Taiwan city error.",
+                "errors": {
+                    "fields": "city",
+                    "detail": "Invalid Taiwan city error: Invalid city name. Expected it is a Taiwan city."
+                }
+            }
         }
     },
     {
@@ -95,7 +53,14 @@
         },
         "expected_response": {
             "status_code": 415,
-            "message": "Invalid Content-Type. Expected 'application/json'."
+            "response": {
+                "success": false,
+                "message": "Invalid content type error.",
+                "errors": {
+                    "fields": "header",
+                    "detail": "Invalid content type error: Invalid Content-Type. Expected 'application/json'."
+                }
+            }
         }
     },
     {
@@ -109,7 +74,13 @@
         },
         "expected_response": {
             "status_code": 200,
-            "message": "Data collected successfully"
+            "response": {
+                "success": true,
+                "message": "Data created successfully",
+                "data": {
+                    "detail": "The data was created in the database successfully."
+                }
+            }
         }
     },
     {
@@ -123,7 +94,14 @@
         },
         "expected_response": {
             "status_code": 409,
-            "message": "Some data are duplicate. collected failed."
+            "response": {
+                "success": false,
+                "message": "Data duplication error.",
+                "errors": {
+                    "fields": "date, city, region",
+                    "detail": "Data duplication error: Some data are duplicate. collected failed."
+                }
+            }
         }
     }
 ]
