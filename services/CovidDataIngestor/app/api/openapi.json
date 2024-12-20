@@ -1,0 +1,217 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+      "title": "FastAPI",
+      "version": "0.1.0"
+    },
+    "paths": {
+      "/collect": {
+        "post": {
+          "summary": "Collect",
+          "operationId": "collect_collect_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectData"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/APIResponse"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "APIResponse": {
+          "properties": {
+            "success": {
+              "type": "boolean",
+              "title": "Success",
+              "description": "State of the response."
+            },
+            "message": {
+              "type": "string",
+              "title": "Message",
+              "description": "Short message describing the status."
+            },
+            "data": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DataDetail"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data details."
+            },
+            "errors": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Error details."
+            }
+          },
+          "type": "object",
+          "required": [
+            "success",
+            "message"
+          ],
+          "title": "APIResponse"
+        },
+        "CollectData": {
+          "properties": {
+            "date": {
+              "type": "string",
+              "format": "date",
+              "title": "Date",
+              "description": "Invalid date format. Expected 'YYYY-MM-DD'."
+            },
+            "city": {
+              "type": "string",
+              "maxLength": 50,
+              "minLength": 1,
+              "title": "City",
+              "description": "The length of city name is between 1 to 50."
+            },
+            "region": {
+              "type": "string",
+              "maxLength": 50,
+              "minLength": 1,
+              "title": "Region",
+              "description": "The length of region name is between 1 to 50."
+            },
+            "cases": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Cases",
+              "description": "'cases' must be a positive integer."
+            }
+          },
+          "type": "object",
+          "required": [
+            "date",
+            "city",
+            "region",
+            "cases"
+          ],
+          "title": "CollectData"
+        },
+        "DataDetail": {
+          "properties": {
+            "detail": {
+              "type": "string",
+              "title": "Detail",
+              "description": "Detailed explanation of the message."
+            }
+          },
+          "type": "object",
+          "required": [
+            "detail"
+          ],
+          "title": "DataDetail"
+        },
+        "ErrorDetail": {
+          "properties": {
+            "fields": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields",
+              "description": "Short message describing the status."
+            },
+            "detail": {
+              "type": "string",
+              "title": "Detail",
+              "description": "Detailed explanation of the message."
+            }
+          },
+          "type": "object",
+          "required": [
+            "detail"
+          ],
+          "title": "ErrorDetail"
+        },
+        "HTTPValidationError": {
+          "properties": {
+            "detail": {
+              "items": {
+                "$ref": "#/components/schemas/ValidationError"
+              },
+              "type": "array",
+              "title": "Detail"
+            }
+          },
+          "type": "object",
+          "title": "HTTPValidationError"
+        },
+        "ValidationError": {
+          "properties": {
+            "loc": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "type": "array",
+              "title": "Location"
+            },
+            "msg": {
+              "type": "string",
+              "title": "Message"
+            },
+            "type": {
+              "type": "string",
+              "title": "Error Type"
+            }
+          },
+          "type": "object",
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ],
+          "title": "ValidationError"
+        }
+      }
+    }
+  }

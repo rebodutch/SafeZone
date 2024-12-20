@@ -1,7 +1,8 @@
+# Description: Dockerfile for the CovidDataSimulator service in the development environment.
 FROM python:3.13-slim
 
 # Copy requirements file into the container
-COPY requirements.txt .
+COPY services/CovidDataSimulator/environments/test/requirements.txt .
 
 # Install dependencies specified in requirements.txt
 # Note: When running 'pip install' as root, a warning is generated 
@@ -10,12 +11,10 @@ COPY requirements.txt .
 # is used to indicate that this behavior is intentional and safe within the Docker context.
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
+# environment variables
+ENV PYTHONPATH=/app
+
 # Copy all project files into the container
-COPY app /app
+COPY services/CovidDataSimulator/app /app
 
 ENV PYTHONPATH=/app
-ENV CovidDataCollector_URL="http://localhost:8000/collect"
-ENV SERVER_IP="0.0.0.0"
-ENV SERVER_PORT=6000
-
-WORKDIR /app
