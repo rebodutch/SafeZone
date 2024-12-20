@@ -1,20 +1,18 @@
 import json
-import pytest
 import csv
+import pytest
 from datetime import datetime
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select, and_
 from sqlalchemy.orm import Session
+# debug use
+# from sqlalchemy import inspect, text
 
-from utils.db.schema import cities, regions, covid_cases
-from config.settings import DB_URL
+from utils.db.schema import covid_cases, cities, regions
+from pipeline.query_service import query_cases, load_city_region_cache, load_populations_cache
+from exceptions.custom import InvalidTaiwanRegionException, InvalidTaiwanCityException
 from config.logger import get_logger
-from main import app
+from config.settings import DB_URL
 
-# Fixtures
-@pytest.fixture(scope="module")
-def client():
-    return TestClient(app)
 
 @pytest.fixture(scope="module")
 def logger():
@@ -56,21 +54,32 @@ def init_db():
                 )
                 session.execute(insert_stmt)
             session.commit()
-
+        # raise Exception("Init database successfully")
 # init database
 init_db()
-
-# Import test cases
-with open("/test/cases/test_integration.json", encoding="utf-8") as f:
+# import test cases
+with open("/test/cases/test_query_service.json", encoding="utf-8") as f:
     test_cases = json.load(f)
 
 def get_case_describes(case):
     return case["test_describes"]
 
-# Testing case by case
 @pytest.mark.parametrize("case", test_cases, ids=get_case_describes)
-def test_data_product(case, client, logger):
-    response = client.get(case["endpoint"], params=case["params"])
-    assert response.status_code == case["expected"]["status_code"]
-    assert response.json() == case["expected"]["response"]
-  
+def test_data_creator(case, logger):
+    try:
+        # init the caches
+        load_city_region_cache()
+        load_populations_cache()
+
+        # date type conversion
+        case["params"]["start_date"] = datetime.strptime(case["params"]["start_date"], "%Y-%m-%d").date()
+        case["params"]["end_date"] = datetime.strptime(case["params"]["end_date"], "%Y-%m-%d").date()
+        
+        print(case)
+        # query cases
+        query_result = query_cases(**case["params"])
+        assert query_result == case["expected"]["query_result"]
+    except InvalidTaiwanRegionException:
+        assert case["expected"]["exception"] == "InvalidTaiwanRegionException"
+    except InvalidTaiwanCityException:
+        assert case["expected"]["exception"] == "InvalidTaiwanCityException"

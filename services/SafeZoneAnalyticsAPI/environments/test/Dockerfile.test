@@ -1,7 +1,7 @@
 FROM python:3.13-slim
 
 # Copy requirements file into the container
-COPY services/CovidDataIngestor/environments/test/requirements.txt .
+COPY services/SafeZoneAnalyticsAPI/environments/test/requirements.txt .
 
 # Install dependencies specified in requirements.txt
 # Note: When running 'pip install' as root, a warning is generated 
@@ -11,8 +11,8 @@ COPY services/CovidDataIngestor/environments/test/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
 # Copy all project files into the container
-COPY services/CovidDataIngestor/app /app
-COPY services/CovidDataIngestor/environments/test/tests /test
-COPY services/CovidDataIngestor/environments/test/db /db
+COPY services/SafeZoneAnalyticsAPI/app /app
+COPY services/SafeZoneAnalyticsAPI/environments/test/tests /test
+COPY services/SafeZoneAnalyticsAPI/environments/test/db /db
 
 ENV PYTHONPATH=/app

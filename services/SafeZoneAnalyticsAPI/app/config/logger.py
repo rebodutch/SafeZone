@@ -1,18 +1,26 @@
 # app/config/logger.py
 import logging
 from logging.handlers import RotatingFileHandler
+from config.settings import LOG_LEVEL, MAX_LOG_FILE_SIZE
 
-MAX_LOG_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
-LOG_LEVEL = logging.DEBUG
+
+if LOG_LEVEL == "DEBUG":
+    LOG_LEVEL = logging.DEBUG
+else:
+    LOG_LEVEL = logging.INFO
+
 
 logger = logging.getLogger("logs/app.logger")
 
+
 def setup_handlers():
-    logger.setLevel(LOG_LEVEL)    
+    logger.setLevel(LOG_LEVEL)
     file_handler = RotatingFileHandler(
         "app.log", maxBytes=MAX_LOG_FILE_SIZE, backupCount=3
     )
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s") 
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
@@ -20,8 +28,10 @@ def setup_handlers():
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
+
 if not logger.handlers:
     setup_handlers()
+
 
 def get_logger():
     """

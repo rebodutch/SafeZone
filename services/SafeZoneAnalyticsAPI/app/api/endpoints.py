@@ -1,42 +1,102 @@
 # app/api/endpoints.py
-from typing import List
-from fastapi import APIRouter, Depends, Request
+from datetime import timedelta
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from services.pipeline import handle_request
-from utils.custom_exceptions.handler import handle_exceptions
-from utils.custom_exceptions.exceptions import InvalidContentTypeException
+
+from api.schemas import (
+    APIResponse,
+    RegionParameters,
+    CityParameters,
+    NationalParameters,
+)
 from config.logger import get_logger
+from pipeline.orchestrator import handle_query_request
+
 
 router = APIRouter()
 logger = get_logger()
 
-def type_checker(request: Request):
-    try:
-        if request.headers.get("content-type") != "application/json":
-            raise InvalidContentTypeException()
-    except InvalidContentTypeException as e:
-        return handle_exceptions(e)
 
-@router.post("/collect")
-async def collect(data: List[dict], content_type_check: None = Depends(type_checker)):
-    """
-    Collect data from the request and handle it.
+@router.get("/cases/region", response_model=APIResponse)
+async def process_data(params: RegionParameters = Depends()):
+    end_date = params.now
+    start_date = end_date - timedelta(days=int(params.interval))
 
-    Args:
-        data (List[dict]): A list of dictionaries containing the data to be collected.
-            "message": "Data collected successfully",
-    Returns:
-        JSONResponse: A JSON response indicating the success or failure of the data collection.
-    """
-    try:
-        logger.info("Data collection request received.")
-        
-        handle_request(data)
-        
-        response = {
-            "message": "Data collected successfully",
-        }
-        logger.info("Data collection request handle success.")
-        return JSONResponse(content=response, status_code=200)
-    except Exception as e:
-        return handle_exceptions(e)
+    logger.info(
+        f"Received request to query aggregated data for date {start_date} ~ {end_date}"
+    )
+    query_params = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "city": params.city,
+        "region": params.region,
+        "ratio": False if not params.ratio else True,
+    }
+
+    query_result = handle_query_request(query_params)
+
+    logger.debug(f"Query result: {query_result}")
+
+    response = APIResponse(
+        success=True,
+        message="Data returned successfully",
+        detail=f"Data returned successfully for dates {query_result["start_date"]} ~ {query_result["end_date"]}.",
+        data=query_result,
+    )
+
+    return JSONResponse(
+        content=response.model_dump(exclude_none=True),
+        status_code=200,
+    )
+
+
+@router.get("/cases/city", response_model=APIResponse)
+async def process_data(params: CityParameters = Depends()):
+    end_date = params.now
+    start_date = end_date - timedelta(days=int(params.interval))
+
+    logger.info(
+        f"Received request to query aggregated data for date {start_date} ~ {end_date}"
+    )
+
+    query_params = {"start_date": start_date, "end_date": end_date, "city": params.city}
+
+    query_result = handle_query_request(query_params)
+
+    response = APIResponse(
+        success=True,
+        message="Data returned successfully",
+        detail=f"Data returned successfully for dates {query_result["start_date"]} ~ {query_result["end_date"]}.",
+        data=query_result,
+    )
+
+    return JSONResponse(
+        content=response.model_dump(exclude_none=True),
+        status_code=200,
+    )
+
+
+@router.get("/cases/national", response_model=APIResponse)
+async def process_data(params: NationalParameters = Depends()):
+    end_date = params.now
+    start_date = end_date - timedelta(days=int(params.interval))
+
+    logger.info(
+        f"Received request to query aggregated data for date {start_date} ~ {end_date}"
+    )
+
+    query_params = {"start_date": start_date, "end_date": end_date}
+
+    query_result = handle_query_request(query_params)
+
+    response = APIResponse(
+        success=True,
+        message="Data returned successfully",
+        detail=f"Data returned successfully for dates {query_result["start_date"]} ~ {query_result["end_date"]}.",
+        data=query_result,
+    )
+
+    return JSONResponse(
+        content=response.model_dump(exclude_none=True),
+        status_code=200,
+    )

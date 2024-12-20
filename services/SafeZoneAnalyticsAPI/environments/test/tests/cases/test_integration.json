@@ -1,182 +1,234 @@
 [
-    {
-        "test_describes": "missing required fields",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "台北市"
-            }
-        ],
-        "expected_response": {
-            "status_code": 400,
-            "message": "Missing required field(s): region and cases."
-        }
+  {
+    "test_describes": "Request to /cases/region in correct scenario",
+    "endpoint": "/cases/region",
+    "params": {
+      "city": "台北市",
+      "region": "信義區",
+      "now": "2023-03-26",
+      "interval": 7
     },
-    {
-        "test_describes": "invalid date format",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "20-03-2023",
-                "city": "台北市",
-                "region": "信義區",
-                "cases": 10
-            }
-        ],
-        "expected_response": {
-            "status_code": 422,
-            "message": "Invalid date format. Expected 'YYYY-MM-DD'."
-        }
-    },
-    {
-        "test_describes": "invalid region",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "不存在的區",
-                "cases": 10
-            }
-        ],
-        "expected_response": {
-            "status_code": 422,
-            "message": "Invalid region name. Expected it is a region in Taiwan."
-        }
-    },
-    {
-        "test_describes": "invalid city",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "不存在的城市",
-                "region": "中山區",
-                "cases": 10
-            }
-        ],
-        "expected_response": {
-            "status_code": 422,
-            "message": "Invalid city name. Expected it is a Taiwan city."
-        }
-    },
-    {
-        "test_describes": "negative cases count",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "中山區",
-                "cases": -5
-            }
-        ],
-        "expected_response": {
-            "status_code": 422,
-            "message": "'cases' must be a positive integer."
-        }
-    },
-    {
-        "test_describes": "unexpected field in request body",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "中山區",
-                "cases": 10,
-                "extra_field": "unexpected_value"
-            }
-        ],
-        "expected_response": {
-            "status_code": 400,
-            "message": "Unexpected field(s): extra_field found in the request body."
-        }
-    },
-    {
-        "test_describes": "invalid content-type",
-        "component_under_test": "main",
-        "content_type": "application/xml",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "中山區",
-                "cases": 10
-            }
-        ],
-        "expected_response": {
-            "status_code": 415,
-            "message": "Invalid Content-Type. Expected 'application/json'."
-        }
-    },
-    {
-        "test_describes": "success case",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "中山區",
-                "cases": 10
-            },
-            {
-                "date": "2023-03-18",
-                "city": "台北市",
-                "region": "信義區",
-                "cases": 5
-            },
-            {
-                "date": "2023-03-19",
-                "city": "高雄市",
-                "region": "三民區",
-                "cases": 8
-            },
-            {
-                "date": "2023-03-20",
-                "city": "台中市",
-                "region": "北區",
-                "cases": 12
-            },
-            {
-                "date": "2023-03-20",
-                "city": "新北市",
-                "region": "板橋區",
-                "cases": 7
-            },
-            {
-                "date": "2023-03-21",
-                "city": "桃園市",
-                "region": "中壢區",
-                "cases": 4
-            },
-            {
-                "date": "2023-03-21",
-                "city": "台北市",
-                "region": "大安區",
-                "cases": 15
-            }
-        ],
-        "expected_response": {
-            "status_code": 200,
-            "message": "Data collected successfully"
-        }
-    },
-    {
-        "test_describes": "duplicate data",
-        "component_under_test": "main",
-        "data": [
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "中山區",
-                "cases": 10
-            }
-        ],
-        "expected_response": {
-            "status_code": 409,
-            "message": "Some data are duplicate. collected failed."
-        }
+    "expected": {
+      "status_code": 200,
+      "response": {
+        "data": {
+          "start_date": "2023-03-19",
+          "end_date": "2023-03-26",
+          "city": "台北市",
+          "region": "信義區",
+          "aggregated_cases": 795
+        },
+        "message": "Data returned successfully",
+        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "success": true
+      }
     }
+  },
+  {
+    "test_describes": "Request to /cases/region with ratio in correct scenario",
+    "endpoint": "/cases/region",
+    "params": {
+      "city": "台北市",
+      "region": "信義區",
+      "now": "2023-03-26",
+      "interval": 7,
+      "ratio": true
+    },
+    "expected": {
+      "status_code": 200,
+      "response": {
+        "data": {
+          "start_date": "2023-03-19",
+          "end_date": "2023-03-26",
+          "city": "台北市",
+          "region": "信義區",
+          "cases_population_ratio": 0.00385
+        },
+        "message": "Data returned successfully",
+        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "success": true
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/region with invalid city",
+    "endpoint": "/cases/region",
+    "params": {
+      "city": "上海市",
+      "region": "信義區",
+      "now": "2023-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 422,
+      "response": {
+        "success": false,
+        "message": "Invalid city name.",
+        "errors": {
+          "fields": [
+            "city"
+          ],
+          "detail": "The city '上海市' is not a valid Taiwan city."
+        }
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/region with region not belonging to city",
+    "endpoint": "/cases/region",
+    "params": {
+      "city": "台北市",
+      "region": "左營區",
+      "now": "2023-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 422,
+      "response": {
+        "success": false,
+        "message": "Invalid region name.",
+        "errors": {
+          "fields": [
+            "city", "region"
+          ],
+          "detail": "The region '左營區' does not belong to the city '台北市'."
+        }
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/region no data found",
+    "endpoint": "/cases/region",
+    "params": {
+      "city": "台北市",
+      "region": "信義區",
+      "now": "2025-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 200,
+      "response": {
+        "data": {
+          "start_date": "2025-03-19",
+          "end_date": "2025-03-26",
+          "city": "台北市",
+          "region": "信義區",
+          "aggregated_cases": 0
+        },
+        "message": "Data returned successfully",
+        "detail": "Data returned successfully for dates 2025-03-19 ~ 2025-03-26.",
+        "success": true
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/city in correct scenario",
+    "endpoint": "/cases/city",
+    "params": {
+      "city": "台北市",
+      "now": "2023-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 200,
+      "response": {
+        "data": {
+          "start_date": "2023-03-19",
+          "end_date": "2023-03-26",
+          "city": "台北市",
+          "aggregated_cases": 1484
+        },
+        "message": "Data returned successfully",
+        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "success": true
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/city with invalid city",
+    "endpoint": "/cases/city",
+    "params": {
+      "city": "上海市",
+      "now": "2023-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 422,
+      "response": {
+        "success": false,
+        "message": "Invalid city name.",
+        "errors": {
+          "fields": [
+            "city"
+          ],
+          "detail": "The city '上海市' is not a valid Taiwan city."
+        }
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/city with invalid now value",
+    "endpoint": "/cases/city",
+    "params": {
+      "city": "台北市",
+      "now": "2025-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 200,
+      "response": {
+        "data": {
+          "start_date": "2025-03-19",
+          "end_date": "2025-03-26",
+          "city": "台北市",
+          "aggregated_cases": 0
+        },
+        "message": "Data returned successfully",
+        "detail": "Data returned successfully for dates 2025-03-19 ~ 2025-03-26.",
+        "success": true
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/national in correct scenario",
+    "endpoint": "/cases/national",
+    "params": {
+      "now": "2023-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 200,
+      "response": {
+        "data": {
+          "start_date": "2023-03-19",
+          "end_date": "2023-03-26",
+          "aggregated_cases": 19238
+        },
+        "message": "Data returned successfully",
+        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "success": true
+      }
+    }
+  },
+  {
+    "test_describes": "Request to /cases/national with invalid now value",
+    "endpoint": "/cases/national",
+    "params": {
+      "now": "2025-03-26",
+      "interval": 7
+    },
+    "expected": {
+      "status_code": 200,
+      "response": {
+        "data": {
+          "start_date": "2025-03-19",
+          "end_date": "2025-03-26",
+          "aggregated_cases": 0
+        },
+        "message": "Data returned successfully",
+        "detail": "Data returned successfully for dates 2025-03-19 ~ 2025-03-26.",
+        "success": true
+      }
+    }
+  }
 ]
