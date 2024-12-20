@@ -24,6 +24,8 @@ if [ "$(docker ps -aq -f name="$CONTAINER_NAME")" ]; then
     docker rm "$CONTAINER_NAME"
 fi
 
+# rm -rf "$(pwd)/services/CovidDataIngestor/environments/test/db/test.db"
+
 # step 5: intialize the database and export the db file
 echo "Initializing the database..."
 # if the db file already doesnt exists, then create it
@@ -54,11 +56,3 @@ docker run --rm \
   pytest test/integration_test
 
 echo "All tests passed successfully!"
-
-# echo "Running the container in interactive mode..."
-# docker run -it \
-#   -p 6010:6010 \
-#   -v "$(pwd)/services/CovidDataIngestor/environments/test/data:/data" \
-#   -v "$(pwd)/utils:/app/utils" \
-#   --name "covid_data_ingestor" "covid_data_ingestor:test" \
-#   /bin/bash
