@@ -37,13 +37,12 @@ fi
 
 
 # Step 6: run the tests in the container
-# # unit test
-# echo "Running unit tests..."
-# docker run --rm \
-#   -v "$(pwd)/services/CovidDataIngestor/environments/test/data:/data" \
-#   -v "$(pwd)/utils:/app/utils" \
-#   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-#   pytest test/unit_test
+# unit test
+echo "Running unit tests..."
+docker run --rm \
+  -v "$(pwd)/utils:/app/utils" \
+  --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+  pytest test/unit_test
 
 # # integration test
 # echo "Running integration tests..."
@@ -55,9 +54,10 @@ fi
 
 # echo "All tests passed successfully!"
 
-echo "Running the container in interactive mode..."
-docker run -it \
-  -p 8050:8050 \
-  -v "$(pwd)/utils:/app/utils" \
-  --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-  python3 /app/main.py
+# # manual test
+# echo "Running the container in interactive mode..."
+# docker run -it \
+#   -p 8050:8050 \
+#   -v "$(pwd)/utils:/app/utils" \
+#   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+#   python3 /app/main.py
