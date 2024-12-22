@@ -50,7 +50,6 @@ def load_populations_cache():
             if city_id not in populations_cache:
                 populations_cache[city_id] = {}
             populations_cache[city_id][region_id] = population
-    print(populations_cache[15])
     logger.info("population cache loaded successfully.")
 
 
