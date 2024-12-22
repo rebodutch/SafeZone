@@ -11,7 +11,7 @@ with open("app/utils/geo_data/towns_updated.json", "r") as f:
     geojson_data = json.load(f)
 
 # 模擬風險數據，確保名稱完全一致
-with open("app/coloring_data.json", "r") as f:
+with open("app/assets/coloring_data.json", "r") as f:
     region_risk = json.load(f)
 
 # 建立 Choroplethmapbox 圖形
