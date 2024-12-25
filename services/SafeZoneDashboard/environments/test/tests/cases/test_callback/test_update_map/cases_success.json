@@ -1,0 +1,68 @@
+[
+    {
+        "test_describes": "test callback to get region data in the map",
+        "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio={{ratio}}",
+        "params": {
+            "interval": "14",
+            "ratio": false
+        },
+        "mock_regions": {
+            "台北市": ["信義區", "大安區", "中正區"],
+            "台中市": ["西屯區", "北屯區"]
+        },
+        "expected": {
+            "response_template": {
+                "data": {
+                    "start_date": "{{start_date}}",
+                    "end_date": "{{now}}",
+                    "city": "{{mock_city}}",
+                    "region": "{{mock_region}}",
+                    "aggregated_cases": "{{aggregated_cases}}"
+                },
+                "message": "Data returned successfully",
+                "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+                "success": true
+            },
+            "data_template": {
+                "start_date": "{{start_date}}",
+                "end_date": "{{now}}",
+                "city": "{{mock_city}}",
+                "region": "{{mock_region}}",
+                "aggregated_cases": "{{aggregated_cases}}"
+            }
+        }
+    },
+    {
+        "test_describes": "test callback to get region data in the map with ratio",
+        "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio={{ratio}}",
+        "params": {
+            "interval": "14",
+            "ratio": true
+        },
+        "mock_regions": {
+            "台北市": ["信義區", "大安區", "中正區"],
+            "台中市": ["西屯區", "北屯區"]
+        },
+        "expected": {
+            "response_template": {
+                "data": {
+                    "start_date": "{{start_date}}",
+                    "end_date": "{{now}}",
+                    "city": "{{mock_city}}",
+                    "region": "{{mock_region}}",
+                    "cases_population_ratio": "{{cases_population_ratio}}"
+                },
+                "message": "Data returned successfully",
+                "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+                "success": true
+            },
+            "data_template": {
+                "start_date": "{{start_date}}",
+                "end_date": "{{now}}",
+                "city": "{{mock_city}}",
+                "region": "{{mock_region}}",
+                "cases_population_ratio": "{{cases_population_ratio}}"
+            }
+        }
+    }
+]

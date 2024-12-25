@@ -1,0 +1,9 @@
+[
+    {
+        "test_describes": "test callback to get region data with params error",
+        "mock_regions": {
+            "台北市": ["信義區"]
+        },
+        "loc": {"interval": "55"}
+    }
+]
