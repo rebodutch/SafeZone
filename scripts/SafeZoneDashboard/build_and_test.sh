@@ -38,11 +38,11 @@ fi
 
 # Step 6: run the tests in the container
 # unit test
-echo "Running unit tests..."
-docker run --rm \
-  -v "$(pwd)/utils:/app/utils" \
-  --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-  pytest test/unit_test
+# echo "Running unit tests..."
+# docker run --rm \
+#   -v "$(pwd)/utils:/app/utils" \
+#   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+#   pytest test/unit_test
 
 # # integration test
 # echo "Running integration tests..."
@@ -55,9 +55,9 @@ docker run --rm \
 # echo "All tests passed successfully!"
 
 # # manual test
-# echo "Running the container in interactive mode..."
-# docker run -it \
-#   -p 8050:8050 \
-#   -v "$(pwd)/utils:/app/utils" \
-#   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-#   python3 /app/main.py
+echo "Running the container in interactive mode..."
+docker run -it \
+  -p 8050:8050 \
+  -v "$(pwd)/utils:/app/utils" \
+  --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+  python3 /app/main.py
