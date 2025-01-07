@@ -3,6 +3,7 @@
         "test_describes": "test callback to get region data with missing end_date",
         "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio={{ratio}}",
         "params": {
+            "city": "台北市",
             "interval": "14",
             "ratio": false
         },

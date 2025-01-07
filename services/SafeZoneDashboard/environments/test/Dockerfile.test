@@ -1,5 +1,14 @@
 FROM python:3.13-slim
 
+# get chromium for website testing
+RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER=/usr/bin/chromedriver
+
 # Copy requirements file into the container
 COPY services/SafeZoneDashboard/environments/test/requirements.txt .
 

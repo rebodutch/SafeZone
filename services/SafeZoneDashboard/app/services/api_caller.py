@@ -1,8 +1,8 @@
 import json
 import requests
-from pydantic import ValidationError
 
 from validators.schemas import NationalParameters, CityParameters, RegionParameters, APIResponse
+from excecptions.custom import UnexceptedResponse
 from config.settings import API_URL
 
 
@@ -17,6 +17,9 @@ def general_update(model, path):
     response.raise_for_status()
     # check if the request was successful, it should a model of APIResponse
     api_response = APIResponse(**response.json()).model_dump(exclude_none=True)
+    # raise an error if the response status is not success
+    if not api_response["success"]:
+        raise UnexceptedResponse(api_response)
     # get the data from the response
     data = api_response["data"]
     return data
@@ -26,12 +29,16 @@ def update_region(now, city, region, interval, ratio):
     model = RegionParameters(now=now, interval=interval, city=city, region=region, ratio=ratio)
     return general_update(model, "cases/region")
 
-def update_city(now, city, interval):
+def update_city(now, city, interval, ratio):
     # create a CityParameters model and validate the inputs
-    model = CityParameters(now=now, interval=interval, city=city)
+    model = CityParameters(now=now, interval=interval, city=city, ratio=ratio)
     return general_update(model, "cases/city")
 
 def update_national(now, interval):
     # create a NationalParameters model and validate the inputs
     model = NationalParameters(now=now, interval=interval)
-    return general_update(model, "cases/national")
+    data = general_update(model, "cases/national")
+    # check the content of the response data
+    if data["end_date"] != now:
+        raise UnexceptedResponse("The end date is unexpected")
+    return data["aggregated_cases"]
