@@ -43,6 +43,8 @@ def risk_map_callbacks(app):
     def update_risk_map(
         click_map, interval, ratio, map_state, cache_state, map_cache
     ): 
+        interval = interval["active"]
+        ratio = ratio["active"]
         if map_state["ratio"] != ratio or map_state["interval"] != interval:
             print("update map with filters clicked")
 

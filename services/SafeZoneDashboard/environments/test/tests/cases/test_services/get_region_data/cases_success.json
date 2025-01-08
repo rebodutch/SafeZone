@@ -1,18 +1,26 @@
 [
     {
-        "test_describes": "test callback to get region data in the map",
-        "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio={{ratio}}",
-        "params": {
-            "city": "台北市",
-            "interval": "14",
-            "ratio": false
-        },
+        "test_describes": "test callback to get region data",
+        "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio=False",
         "mock_regions": {
             "台北市": [
                 "信義區",
                 "大安區",
-                "中正區"
+                "中正區",
+                "中山區",
+                "松山區",
+                "大同區",
+                "萬華區",
+                "士林區",
+                "內湖區",
+                "南港區",
+                "文山區"
             ]
+        },
+        "params": {
+            "city": "台北市",
+            "interval": "14",
+            "ratio": false
         },
         "expected": {
             "response_template": {
@@ -27,24 +35,31 @@
                 "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
                 "success": true
             },
-            "data_template": {
-                "{{mock_region}}": "{{aggregated_cases}}"
-            }
+            "data_template": "{{aggregated_cases}}"
         }
     },
     {
-        "test_describes": "test callback to get region data in the map with ratio",
-        "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio={{ratio}}",
+        "test_describes": "test callback to get region data with ratio",
+        "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio=True",
+        "mock_regions": {
+            "台北市": [
+                "信義區",
+                "大安區",
+                "中正區",
+                "中山區",
+                "松山區",
+                "大同區",
+                "萬華區",
+                "士林區",
+                "內湖區",
+                "南港區",
+                "文山區"
+            ]
+        },
         "params": {
-            "city": "台中市",
+            "city": "台北市",
             "interval": "14",
             "ratio": true
-        },
-        "mock_regions": {
-            "台中市": [
-                "西屯區",
-                "北屯區"
-            ]
         },
         "expected": {
             "response_template": {
@@ -59,9 +74,7 @@
                 "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
                 "success": true
             },
-            "data_template": {
-                "{{mock_region}}": "{{cases_population_ratio}}"
-            }
+            "data_template": "{{cases_population_ratio}}"
         }
     }
 ]

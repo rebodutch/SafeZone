@@ -25,17 +25,25 @@ if [ "$(docker ps -aq -f name="$CONTAINER_NAME")" ]; then
 fi
 
 # Step 5: run the tests in the container
-# unit test
-echo "Running unit tests..."
-docker run --rm \
-  -v "$(pwd)/utils:/app/utils" \
-  --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-  pytest test/unit_test
+# manual test: test UI
+# echo "Running the manual test..."
+# docker run -it \
+#   -p 8050:8050 \
+#   -v "$(pwd)/utils:/app/utils" \
+#   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+#   python3 /test/manual_test/test_ui/test.py
 
-# manual test
+# unit test
+# echo "Running unit tests..."
+# docker run --rm \
+#   -v "$(pwd)/utils:/app/utils" \
+#   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
+#   pytest test/unit_test
+
+# manual test: integration test
 echo "Running the manual test..."
 docker run -it \
   -p 8050:8050 \
   -v "$(pwd)/utils:/app/utils" \
   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-  python3 /test/manual_test/test.py
+  python3 /test/manual_test/integration_test/test.py
