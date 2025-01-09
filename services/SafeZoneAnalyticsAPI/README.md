@@ -1,48 +1,133 @@
-# CovidDataIngestor
+# SafeZone Analytics API
 
-## 簡介
-CovidDataIngestor 是一個用於收集模擬疫情數據的服務，該服務使用 Python 開發，並基於 FastAPI 框架來實現 API 端點。該服務能夠接收、驗證、保存疫情相關的數據，以便進一步的處理和分析。
+SafeZoneAnalyticsAPI 提供高效的數據分析服務，支持多條件查詢和數據處理，滿足疫情數據分析需求。
 
-## 目錄結構
-- **app**: 主應用程序的源代碼。
-  - **api**: 定義 API 端點的邏輯。
-  - **services**: 包含核心業務邏輯（如數據創建、驗證等）。
-  - **handlers**: 包含異常處理邏輯。
-  - **config**: 配置文件。
-  - **exceptions**: 自定義的異常類型。
-  - **main.py**: 服務啟動入口。
+---
 
-- **environments**: 各環境的配置文件。
-  - **test/dev/prod**: 包含對應環境的 Dockerfile、依賴和環境變數文件。
-  - **shared**: 通用的環境配置和資源。
+## 功能概述
 
-- **README.md**: 本文件，提供項目基本信息和使用指南。
+1. **查詢功能**
 
-## 快速開始
+   - 支持按地區、時間範圍和案例類型進行數據查詢。
+   - 提供結構化的查詢結果，包括病例總數和增長率。
 
-1. **克隆專案**
-   ```bash
-   git clone <repository-url>
-   cd CovidDataIngestor
-   ```
+2. **數據類型支持**
 
-2. **選擇環境並構建 Docker 映像**
-   - 開發環境：
-     ```bash
-     docker build -f environments/dev/Dockerfile.dev -t covid-data-collector:dev .
-     ```
-   - 測試環境：
-     ```bash
-     docker build -f environments/test/Dockerfile.test -t covid-data-collector:test .
-     ```
+   - 支持按案例個數或人口比例進行數據查詢和分析。
 
-3. **運行服務**
-   ```bash
-   docker run -p 8000:8000 covid-data-collector:dev
-   ```
+---
 
-## 主要依賴
-- Python 3.11
-- FastAPI
-- Docker
-- SQLAlchemy Core
+## 目錄架構
+
+```plaintext
+SafeZoneAnalyticsAPI/
+├── app/                   # 主應用邏輯與功能模組
+│   ├── api/               # API 端點與數據模式
+│   ├── config/            # 環境與日誌配置
+│   ├── exceptions/        # 異常處理模組
+│   ├── pipeline/          # 數據處理與分析管道
+│   ├── main.py            # 主程序入口
+├── environments/          # 環境配置
+│   ├── dev/               # 開發環境
+│   ├── prod/              # 生產環境
+│   ├── test/              # 測試環境與數據
+├── .env                   # 環境變數配置
+├── Dockerfile.test        # 測試環境 Docker 配置
+├── requirements.txt       # 項目依賴
+└── README.md              # 項目說明文檔
+```
+
+---
+
+## RESTful API 範例
+
+以下是 SafeZone Analytics API 的主要端點及其使用範例：
+
+### 1. **區域數據查詢**
+
+**端點**:
+```
+GET /cases/region
+```
+**請求參數**:
+| 參數名稱       | 類型     | 必填  | 描述                           |
+|----------------|----------|-------|--------------------------------|
+| `now`          | `string` | 是    | 當前日期，格式為 `YYYY-MM-DD` |
+| `interval`     | `int`    | 是    | 查詢的日期範圍天數，例如 `7`   |
+| `city`         | `string` | 是    | 城市名稱                       |
+| `region`       | `string` | 是    | 區域名稱                       |
+| `ratio`        | `bool`   | 否    | 是否返回人口比例數據           |
+
+**回應範例**:
+```json
+{
+    "data": {
+        "start_date": "2023-01-01",
+        "end_date": "2023-01-07",
+        "city": "Taipei",
+        "region": "Xinyi",
+        "aggregated_cases": 150
+    },
+    "message": "Data returned successfully",
+    "detail": "Data returned successfully for dates 2023-01-01 ~ 2023-01-07.",
+    "success": true
+}
+```
+
+### 2. **城市數據查詢**
+
+**端點**:
+```
+GET /cases/city
+```
+**請求參數**:
+| 參數名稱       | 類型     | 必填  | 描述                           |
+|----------------|----------|-------|--------------------------------|
+| `now`          | `string` | 是    | 當前日期，格式為 `YYYY-MM-DD` |
+| `interval`     | `int`    | 是    | 查詢的日期範圍天數，例如 `7`   |
+| `city`         | `string` | 是    | 城市名稱                       |
+| `ratio`        | `bool`   | 否    | 是否返回人口比例數據           |
+
+**回應範例**:
+```json
+{
+    "data": {
+        "start_date": "2023-01-01",
+        "end_date": "2023-01-07",
+        "city": "Taipei",
+        "aggregated_cases": 500
+    },
+    "message": "Data returned successfully",
+    "detail": "Data returned successfully for dates 2023-01-01 ~ 2023-01-07.",
+    "success": true
+}
+```
+
+### 3. **全國數據查詢**
+
+**端點**:
+```
+GET /cases/national
+```
+**請求參數**:
+| 參數名稱       | 類型     | 必填  | 描述                           |
+|----------------|----------|-------|--------------------------------|
+| `now`          | `string` | 是    | 當前日期，格式為 `YYYY-MM-DD` |
+| `interval`     | `int`    | 是    | 查詢的日期範圍天數，例如 `7`   |
+
+**回應範例**:
+```json
+{
+    "data": {
+        "start_date": "2023-01-01",
+        "end_date": "2023-01-07",
+        "aggregated_cases": 10000
+    },
+    "message": "Data returned successfully",
+    "detail": "Data returned successfully for dates 2023-01-01 ~ 2023-01-07.",
+    "success": true
+}
+```
+
+---
+
