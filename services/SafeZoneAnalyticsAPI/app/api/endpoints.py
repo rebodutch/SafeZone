@@ -59,7 +59,12 @@ async def process_data(params: CityParameters = Depends()):
         f"Received request to query aggregated data for date {start_date} ~ {end_date}"
     )
 
-    query_params = {"start_date": start_date, "end_date": end_date, "city": params.city}
+    query_params = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "city": params.city,
+        "ratio": False if not params.ratio else True,
+    }
 
     query_result = handle_query_request(query_params)
 

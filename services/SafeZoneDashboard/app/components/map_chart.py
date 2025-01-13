@@ -56,7 +56,7 @@ def get_risk_map():
 # risk map of whole taiwan
 def get_tw_risk_map(risk_level=None):
     # risk map of whole taiwan with city level risk initialized
-    with open(f"app/utils/geo_data/geo_city.json", "r") as f:
+    with open(f"app/utils/geo_data/boundaries/geo_city.json", "r") as f:
         geojson_data = json.load(f)
     # if risk_level is None, get city data by default filter settings
     if risk_level is None:

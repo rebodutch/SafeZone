@@ -1,7 +1,9 @@
 import dash
 import dash_bootstrap_components as dbc
+
 from layout.dashboard_layout import get_dashboard_layout
 from callbacks.register import register_callbacks
+from config.settings import SERVER_IP, SERVER_PORT
 
 def create_app():
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
@@ -11,4 +13,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run_server(host="0.0.0.0", debug=True)
+    app.run_server(host=SERVER_IP, port=SERVER_PORT, debug=True)

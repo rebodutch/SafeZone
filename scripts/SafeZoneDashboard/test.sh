@@ -43,7 +43,7 @@ fi
 # manual test: integration test
 echo "Running the manual test..."
 docker run -it \
-  -p 8050:8050 \
+  -p 8080:8080 \
   -v "$(pwd)/utils:/app/utils" \
   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
   python3 /test/manual_test/integration_test/test.py

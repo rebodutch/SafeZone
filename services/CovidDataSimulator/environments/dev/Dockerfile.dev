@@ -1,20 +1,19 @@
-# Description: Dockerfile for the CovidDataSimulator service in the development environment.
 FROM python:3.13-slim
 
 # Copy requirements file into the container
-COPY services/CovidDataSimulator/environments/test/requirements.txt .
+COPY services/CovidDataSimulator/environments/dev/requirements.txt .
 
-# Install dependencies specified in requirements.txt
-# Note: When running 'pip install' as root, a warning is generated 
-# because running pip as root without using a virtual environment can lead to permission issues or conflicts.
-# To suppress the warning, the '--root-user-action=ignore' option 
-# is used to indicate that this behavior is intentional and safe within the Docker context.
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
-
-# environment variables
-ENV PYTHONPATH=/app
 
 # Copy all project files into the container
 COPY services/CovidDataSimulator/app /app
+# copy .env file
+COPY services/CovidDataSimulator/environments/dev/.env.dev /app/.env
+# copy utils
+COPY utils /app/utils
 
 ENV PYTHONPATH=/app
+WORKDIR /app
+
+CMD ["python", "main.py"]

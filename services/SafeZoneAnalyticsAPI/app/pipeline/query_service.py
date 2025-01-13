@@ -53,8 +53,13 @@ def load_populations_cache():
     logger.info("population cache loaded successfully.")
 
 
-def query_population(city_id, region_id):
-    return populations_cache[city_id][region_id]
+def query_population(city_id, region_id = None):
+    if region_id:
+        return populations_cache[city_id][region_id]
+    aggregated_population = 0
+    for region_id, population in populations_cache[city_id].items():
+        aggregated_population += population
+    return aggregated_population
 
 
 def query_cases(**params):
@@ -123,21 +128,33 @@ def query_cases_by_city(**params):
         if params["city"] not in geo_cache:
             raise InvalidTaiwanCityException(params["city"])
 
+        city_id = geo_cache[params["city"]][0]
         # query cases by city
         query = select(func.sum(covid_cases.c.cases).label("total_cases")).where(
             covid_cases.c.date >= params["start_date"],
             covid_cases.c.date <= params["end_date"],
-            covid_cases.c.city_id == geo_cache[params["city"]][0],
+            covid_cases.c.city_id == city_id,
         )
         cases = session.execute(query).scalar()
         cases = cases if cases else 0
+    
+        if "ratio" in params and params["ratio"]:
+            population = query_population(city_id)
+            cases =round(cases / population, 5)
+            return {
+                "start_date": params["start_date"].strftime("%Y-%m-%d"),
+                "end_date": params["end_date"].strftime("%Y-%m-%d"),
+                "city": params["city"],
+                "cases_population_ratio": cases,
+            }
 
-        return {
-            "start_date": params["start_date"].strftime("%Y-%m-%d"),
-            "end_date": params["end_date"].strftime("%Y-%m-%d"),
-            "city": params["city"],
-            "aggregated_cases": cases,
-        }
+        else:
+            return {
+                "start_date": params["start_date"].strftime("%Y-%m-%d"),
+                "end_date": params["end_date"].strftime("%Y-%m-%d"),
+                "city": params["city"],
+                "aggregated_cases": cases,
+            }
 
 
 def query_cases_national(**params):

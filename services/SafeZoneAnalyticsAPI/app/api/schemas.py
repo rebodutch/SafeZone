@@ -10,10 +10,11 @@ class NationalParameters(BaseModel):
 
 class CityParameters(NationalParameters):
     city: str = Field(..., min_length=1, max_length=50, description="The length of city name is between 1 to 50.")
-  
+    ratio: bool = Field(False, description="Whether to return the ratio of cases to population.")
+    
 class RegionParameters(CityParameters):  
     region: str = Field(..., min_length=1, max_length=50, description="The length of region name is between 1 to 50.")
-    ratio: Optional[bool] = Field(False, description="Whether to include cases/population ratio in the response.")
+   
 
 # response models
 class DataDetail(BaseModel):

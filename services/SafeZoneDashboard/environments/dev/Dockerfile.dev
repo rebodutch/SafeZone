@@ -1,19 +1,16 @@
 FROM python:3.13-slim
 
 # Copy requirements file into the container
-COPY services/SafeZoneAnalyticsAPI/environments/dev/requirements.txt .
+COPY services/SafeZoneDashboard/environments/dev/requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
 # Copy all project files into the container
-COPY services/SafeZoneAnalyticsAPI/app /app
+COPY services/SafeZoneDashboard/app /app
 # copy utils
 COPY utils /app/utils
 # copy .env file
-COPY services/SafeZoneAnalyticsAPI/environments/dev/.env.dev /app/.env
+COPY services/SafeZoneDashboard/environments/dev/.env.dev /app/.env
 
 ENV PYTHONPATH=/app
-WORKDIR /app
-
-CMD ["python", "main.py"]

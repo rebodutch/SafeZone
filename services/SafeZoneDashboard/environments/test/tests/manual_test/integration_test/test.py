@@ -5,9 +5,8 @@ import responses
 from jinja2 import Template
 from datetime import datetime, timedelta
 from collections import defaultdict
-from freezegun import freeze_time
 
-from config.settings import API_URL
+from config.settings import API_URL, SERVER_IP, SERVER_PORT
 from main import create_app
 
 
@@ -38,7 +37,7 @@ def mock_request_and_response():
     national_templates = templates["national"]
 
     # load taiwan amdinistrative data
-    with open("/app/utils/geo_data/taiwan_geo_data.json", "r") as f:
+    with open("/app/utils/geo_data/administrative/taiwan_admin.json", "r") as f:
         tw_admin = json.load(f)
     # smaller data for testing
     # tw_admin = {
@@ -56,7 +55,7 @@ def mock_request_and_response():
 
     # load population data
     population = defaultdict(dict)
-    with open("/app/utils/geo_data/towns_population.csv", "r") as f:
+    with open("/app/utils/geo_data/population/region_population.csv", "r") as f:
         tw_population = csv.DictReader(f)
         next(tw_population, None)
         # build a dictionary for population
@@ -141,7 +140,7 @@ def manual_test():
         responses.add(responses.GET, request, json=response, status=200)
 
     app = create_app()
-    app.run_server(host="0.0.0.0", debug=True)
+    app.run_server(host=SERVER_IP, port=SERVER_PORT, debug=True)
 
 
 if __name__ == "__main__":

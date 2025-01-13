@@ -1,6 +1,5 @@
-import json
 import requests
-import time
+# import time
 
 from validators.schemas import NationalParameters, CityParameters, RegionParameters, APIResponse
 from excecptions.custom import UnexceptedResponse
@@ -9,26 +8,16 @@ from config.logger import get_logger
 
 logger = get_logger()
 
-
-def load_taiwan_geo():
-    with open("/app/utils/geo_data/taiwan_geo_data.json", "r") as f:
-        taiwan_geo_cache = json.load(f)
-    return taiwan_geo_cache
-
-last_exit_time = None
+# test request response time: the lasttime leave the function
+# last_exit_time = None
 
 def general_update(model, path):
-    
-    global last_exit_time
-
-    # 記錄進入時間
-    enter_time = time.perf_counter()
-    logger.info(f"Enter time: {enter_time:.6f}")
-
-    # 計算前端反應時間（如果有上次的離開時間）
-    if last_exit_time is not None:
-        frontend_reaction_time = enter_time - last_exit_time
-        logger.info(f"Frontend Reaction Time: {frontend_reaction_time:.6f} seconds")
+    # global last_exit_time
+    ## calculate the frontend reaction time: the current time - the last time leave the function
+    # enter_time = time.perf_counter()
+    # if last_exit_time is not None:
+    #     frontend_reaction_time = enter_time - last_exit_time
+    #     logger.info(f"Frontend Reaction Time: {frontend_reaction_time:.6f} seconds")
     
     url = f"{API_URL}/{path}"
     response = requests.get(url, params=model.model_dump())
@@ -36,15 +25,12 @@ def general_update(model, path):
     # raise an error if the request was not successful by http status code
     response.raise_for_status()
 
-
-    # 記錄離開時間
-    exit_time = time.perf_counter()
-    backend_reaction_time = exit_time - enter_time
-    logger.info(f"Exit time: {exit_time:.6f}")
-    logger.info(f"Backend Reaction Time: {backend_reaction_time:.6f} seconds")
-
-    # 更新全局離開時間
-    last_exit_time = exit_time
+    ## calculate the backend reaction time: the current time - the time enter the function
+    # exit_time = time.perf_counter()
+    # backend_reaction_time = exit_time - enter_time
+    # logger.info(f"Backend Reaction Time: {backend_reaction_time:.6f} seconds")
+    ## update the time leave the function
+    # last_exit_time = exit_time
 
     # check if the request was successful, it should a model of APIResponse
     api_response = APIResponse(**response.json()).model_dump(exclude_none=True)

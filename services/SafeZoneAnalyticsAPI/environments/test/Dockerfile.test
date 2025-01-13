@@ -14,5 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 COPY services/SafeZoneAnalyticsAPI/app /app
 COPY services/SafeZoneAnalyticsAPI/environments/test/tests /test
 COPY services/SafeZoneAnalyticsAPI/environments/test/db /db
+# copy .env file
+COPY services/SafeZoneAnalyticsAPI/environments/test/.env.test /app/.env
+
 
 ENV PYTHONPATH=/app

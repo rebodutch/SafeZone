@@ -13,6 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 # Copy all project files into the container
 COPY services/CovidDataSimulator/app /app
 COPY services/CovidDataSimulator/environments/test/tests /test
+# copy .env file    
+COPY services/CovidDataSimulator/environments/test/.env.test /app/.env
 
 ENV LOGGING_LEVEL=DEBUG
 ENV PYTHONPATH=/app

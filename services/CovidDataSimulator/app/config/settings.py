@@ -1,5 +1,9 @@
 # app/config/settings.py
 import os
+from dotenv import load_dotenv
+
+# load environment variables
+load_dotenv()
 
 # Service settings
 SERVICE_NAME = os.getenv("SERVICE_NAME", "CovidDataSimulator")
@@ -10,4 +14,4 @@ SERVER_PORT = int(os.getenv("Server_PORT", "8000"))
 INGESTOR_URL = os.getenv("CovidDataIngestor_URL", "http://0.0.0.0:8010/collect")
 # Logging settings
 LOG_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
-MAX_LOG_FILE_SIZE = os.getenv("LOG_FILE_SIZE", 5 * 1024 * 1024)  # 5 MB
+MAX_LOG_FILE_SIZE = int(os.getenv("LOG_FILE_SIZE", str(5 * 1024 * 1024)))  # 5 MB

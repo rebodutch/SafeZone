@@ -14,5 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 COPY services/CovidDataIngestor/app /app
 COPY services/CovidDataIngestor/environments/test/tests /test
 COPY services/CovidDataIngestor/environments/test/db /db
+# copy .env file
+COPY services/CovidDataIngestor/environments/test/.env.test /app/.env
 
 ENV PYTHONPATH=/app

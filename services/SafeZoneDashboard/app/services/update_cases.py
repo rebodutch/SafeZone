@@ -1,10 +1,19 @@
+import json
 import datetime
 
-from services.api_caller import load_taiwan_geo
 from services.api_caller import update_national, update_city, update_region
 from config.logger import get_logger
 
 logger = get_logger()
+
+taiwan_admin_cache = None
+
+def load_taiwan_admin():
+    global taiwan_admin_cache
+    if not taiwan_admin_cache:
+        with open("/app/utils/geo_data/administrative/taiwan_admin.json", "r") as f:
+            taiwan_admin_cache = json.load(f)
+    return taiwan_admin_cache
 
 
 def get_national_cases(interval):
@@ -17,11 +26,11 @@ def get_national_cases(interval):
 
 def get_region_data(city, interval, ratio=False):
     # load taiwan geo data
-    taiwan_geo_data = load_taiwan_geo()
+    taiwan_admin = load_taiwan_admin()
     now_date = datetime.date.today().strftime("%Y-%m-%d")
 
     data = {}
-    for region in taiwan_geo_data[city]:
+    for region in taiwan_admin[city]:
         region_data = update_region(now_date, city, region, interval, ratio)
         if ratio:
             data[region] = region_data["cases_population_ratio"]
@@ -32,11 +41,11 @@ def get_region_data(city, interval, ratio=False):
 
 def get_city_data(interval, ratio=False):
     # load taiwan geo data
-    taiwan_geo_data = load_taiwan_geo()
+    taiwan_admin = load_taiwan_admin()
     now_date = datetime.date.today()
 
     data = {}
-    for city in taiwan_geo_data.keys():
+    for city in taiwan_admin.keys():
         city_data = update_city(now_date, city, interval, ratio)
         if ratio:
             data[city] = city_data["cases_population_ratio"]

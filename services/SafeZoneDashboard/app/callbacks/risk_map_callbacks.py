@@ -9,13 +9,27 @@ from components.map_chart import get_city_risk_map
 from services.update_cases import get_region_data, get_city_data
 from config.logger import get_logger
 
-# Load data
-with open("app/utils/geo_data/city_center.json", "r") as f:
-    city_center = json.load(f)
-with open("app/utils/geo_data/cityname_to_code.json", "r") as f:
-    code_map = json.load(f)
+# global variables
+city_center = None
+city_code = None
 # get logger
 logger = get_logger()
+
+
+def get_city_center(city):
+    global city_center
+    if not city_center:
+        with open("app/utils/geo_data/boundaries/accessory/city_center.json", "r") as f:
+            city_center = json.load(f)
+    return city_center[city]
+
+
+def get_city_code(city):
+    global city_code
+    if not city_code:
+        with open("app/utils/geo_data/boundaries/accessory/city_code.json", "r") as f:
+            city_code = json.load(f)
+    return city_code[city]
 
 
 def risk_map_callbacks(app):
@@ -40,9 +54,7 @@ def risk_map_callbacks(app):
             State("risk-map-store", "data"),
         ],
     )
-    def update_risk_map(
-        click_map, interval, ratio, map_state, cache_state, map_cache
-    ): 
+    def update_risk_map(click_map, interval, ratio, map_state, cache_state, map_cache):
         interval = interval["active"]
         ratio = ratio["active"]
         if map_state["ratio"] != ratio or map_state["interval"] != interval:
@@ -123,7 +135,10 @@ def update_map_with_map_clicked(
     # switch to region level
     else:
         # get region geo data for clicked city
-        with open(f"app/utils/geo_data/{code_map[clicked_city]}_region.json", "r") as f:
+        with open(
+            f"app/utils/geo_data/boundaries/regions/{get_city_code(clicked_city)}_region.json",
+            "r",
+        ) as f:
             geojson_data = json.load(f)
         # get region risk data for clicked city
         region_risk = get_region_data(clicked_city, interval, ratio)
@@ -138,7 +153,7 @@ def update_map_with_map_clicked(
             get_city_risk_map(
                 geojson_data,
                 region_risk,
-                city_center[clicked_city],
+                get_city_center(clicked_city),
                 "點擊地圖任區域可返回上一層",
             ),
             # map state
@@ -190,7 +205,10 @@ def update_map_with_filters_clicked(interval, ratio, map_state, map_cache):
     else:
         current_city = map_state["loc"]
         # get region geo data for current city
-        with open(f"app/utils/geo_data/{code_map[current_city]}_region.json", "r") as f:
+        with open(
+            f"app/utils/geo_data/boundaries/regions/{get_city_code(current_city)}_region.json",
+            "r",
+        ) as f:
             geojson_data = json.load(f)
         # get region risk data for current city
         region_risk = get_region_data(current_city, interval, ratio)
@@ -205,7 +223,7 @@ def update_map_with_filters_clicked(interval, ratio, map_state, map_cache):
             get_city_risk_map(
                 geojson_data,
                 region_risk,
-                city_center[current_city],
+                get_city_center(current_city),
                 "點擊地圖任區域可返回上一層",
             ),
             # map state

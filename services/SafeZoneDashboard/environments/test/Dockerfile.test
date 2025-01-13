@@ -1,14 +1,5 @@
 FROM python:3.13-slim
 
-# get chromium for website testing
-RUN apt-get update && apt-get install -y \
-    chromium \
-    chromium-driver \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV CHROME_BIN=/usr/bin/chromium
-ENV CHROMEDRIVER=/usr/bin/chromedriver
-
 # Copy requirements file into the container
 COPY services/SafeZoneDashboard/environments/test/requirements.txt .
 
@@ -21,6 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
 # Copy all project files into the container
 COPY services/SafeZoneDashboard/app /app
+# copy .env file
+COPY services/SafeZoneDashboard/environments/test/.env.test /app/.env
+# copy tests
 COPY services/SafeZoneDashboard/environments/test/tests /test
 
 ENV PYTHONPATH=/app
