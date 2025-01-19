@@ -17,7 +17,7 @@ logger = get_logger()
 async def process_data(params: DailyParameters = Depends()):
     date = params.date.strftime("%Y-%m-%d")
 
-    logger.info(f"Received request to simulate daily data for date {date}")
+    logger.info(f"Received request to simulate {date} data.")
 
     handle_daily_request(date)
 
@@ -26,6 +26,8 @@ async def process_data(params: DailyParameters = Depends()):
         message="Data sent successfully",
         data={"detail": f"Data sent successfully for date {date}."},
     )
+    
+    logger.info("Data simulation request handle success.")
 
     return JSONResponse(
         content=response.model_dump(exclude_none=True),

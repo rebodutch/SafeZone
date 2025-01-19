@@ -21,10 +21,10 @@ def type_checker(request: Request):
 async def collect(
     payload: CollectData, content_type_check: None = Depends(type_checker)
 ):
-    logger.info("Received request to collect data.")
+    logger.debug("Received request to collect data.")
 
     data = payload.model_dump()
-    logger.debug(f"Request data: {data}")
+    logger.debug(f"Collecting with data: {data}.")
 
     handle_request(data)
 
@@ -35,7 +35,7 @@ async def collect(
             "detail": f"The data was created in the database successfully."
         },
     )
-    logger.info("Data collection request handle success.")
+    logger.debug("Data collection request handle success.")
     
     return JSONResponse(
         content=response.model_dump(exclude_none=True),

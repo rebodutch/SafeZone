@@ -18,6 +18,9 @@ def read_csv():
         },
         inplace=True,
     )
+    # aggregate the data by date, city, and region
+    data = data.groupby(["date", "city", "region"], as_index=False)["cases"].sum()
+    
     # format the date in the data
     data["date"] = pd.to_datetime(data["date"], format="%Y/%m/%d")
     # Reformat the date to "%Y-%m-%d"

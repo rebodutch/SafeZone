@@ -8,16 +8,9 @@ from config.logger import get_logger
 
 logger = get_logger()
 
-# test request response time: the lasttime leave the function
-# last_exit_time = None
-
 def general_update(model, path):
-    # global last_exit_time
-    ## calculate the frontend reaction time: the current time - the last time leave the function
-    # enter_time = time.perf_counter()
-    # if last_exit_time is not None:
-    #     frontend_reaction_time = enter_time - last_exit_time
-    #     logger.info(f"Frontend Reaction Time: {frontend_reaction_time:.6f} seconds")
+    
+    logger.debug("Requesting data from analytics api.")
     
     url = f"{API_URL}/{path}"
     response = requests.get(url, params=model.model_dump())
@@ -25,12 +18,7 @@ def general_update(model, path):
     # raise an error if the request was not successful by http status code
     response.raise_for_status()
 
-    ## calculate the backend reaction time: the current time - the time enter the function
-    # exit_time = time.perf_counter()
-    # backend_reaction_time = exit_time - enter_time
-    # logger.info(f"Backend Reaction Time: {backend_reaction_time:.6f} seconds")
-    ## update the time leave the function
-    # last_exit_time = exit_time
+    logger.debug("Get response from analytics api.")
 
     # check if the request was successful, it should a model of APIResponse
     api_response = APIResponse(**response.json()).model_dump(exclude_none=True)

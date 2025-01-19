@@ -3,11 +3,14 @@ ENV ?= dev
 
 # Per-service commands
 test-%:
-	bash scripts/$*/test.sh
+	bash scripts/$*/test.shit 
 
 build-%:
 	bash scripts/$*/build.sh
 
+db-init:
+	bash scripts/DB/create_init_volumn.sh
+	 
 # Global commands
 test-all: $(addprefix test-, $(SERVICE_NAMES))
 build-all: $(addprefix build-, $(SERVICE_NAMES))

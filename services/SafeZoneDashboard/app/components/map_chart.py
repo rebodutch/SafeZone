@@ -2,15 +2,16 @@ import json
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from services.update_cases import get_city_data
+from config.time_manager import get_now
 
 
 # risk map canvas
 def get_risk_map():
     # get time settings
-    end_date = datetime.today()
+    end_date = get_now()
     start_date = end_date - timedelta(days=3)
     start_date = start_date.strftime("%Y-%m-%d")
     end_date = end_date.strftime("%Y-%m-%d")

@@ -1,13 +1,14 @@
 import json
 import dash
-import time
 import plotly.graph_objects as go
 
+from datetime import timedelta
 from dash import Output, Input, State
 
 from components.map_chart import get_city_risk_map
 from services.update_cases import get_region_data, get_city_data
 from config.logger import get_logger
+from config.time_manager import get_now
 
 # global variables
 city_center = None
@@ -30,6 +31,31 @@ def get_city_code(city):
         with open("app/utils/geo_data/boundaries/accessory/city_code.json", "r") as f:
             city_code = json.load(f)
     return city_code[city]
+
+
+def risk_title_callbacks(app):
+    @app.callback(
+        Output("risk-map-title", "children"),
+        [
+            Input("interval-button-state", "data"),
+            Input("ratio-button-state", "data"),
+        ],
+    )
+    def update_risk_title(interval, ratio):
+        interval = interval["active"]
+        ratio = ratio["active"]
+        # update the title based on the active button
+        if ratio:
+            ratio_str = "依比例"
+        else:
+            ratio_str = "依病例數"
+        # update the start and end date based on the active button
+        end_date = get_now()
+        start_date = end_date - timedelta(days=int(interval) + 1)
+        end_date = end_date.strftime("%Y-%m-%d")
+        start_date = start_date.strftime("%Y-%m-%d")
+
+        return f"{start_date} ~ {end_date} 疫情風險圖 - {ratio_str}"
 
 
 def risk_map_callbacks(app):
@@ -58,12 +84,12 @@ def risk_map_callbacks(app):
         interval = interval["active"]
         ratio = ratio["active"]
         if map_state["ratio"] != ratio or map_state["interval"] != interval:
-            print("update map with filters clicked")
-
+            logger.debug("update map with filter state changes")
             return update_map_with_filters_clicked(
                 interval, ratio, map_state, map_cache
             )
         elif click_map:
+            logger.debug("update map with map clicked")
             return update_map_with_map_clicked(
                 click_map,
                 interval,
@@ -72,7 +98,9 @@ def risk_map_callbacks(app):
                 cache_state,
                 map_cache,
             )
-        return [dash.no_update, dash.no_update, dash.no_update, dash.no_update]
+        else:
+            logger.debug("update map callback was triggered by unknown event")
+            return [dash.no_update, dash.no_update, dash.no_update, dash.no_update]
 
 
 def update_map_with_map_clicked(
@@ -92,7 +120,7 @@ def update_map_with_map_clicked(
         # if the map state is the same as the cache state return the cached map
         if ratio == cache_state["ratio"] and interval == cache_state["interval"]:
 
-            logger.info(
+            logger.debug(
                 f"update map with map clicked (cache hit): layer=region->city, "
                 f"ratio={ratio}, interval={interval}, loc=台灣"
             )
@@ -114,7 +142,7 @@ def update_map_with_map_clicked(
             map_cache["data"][0]["location"] = list(city_risk.keys())
             map_cache["data"][0]["z"] = list(city_risk.values())
 
-            logger.info(
+            logger.debug(
                 f"update map with map clicked (cache miss): layer=region->city, "
                 f"ratio={ratio}, interval={interval}, loc=台灣"
             )
@@ -143,7 +171,7 @@ def update_map_with_map_clicked(
         # get region risk data for clicked city
         region_risk = get_region_data(clicked_city, interval, ratio)
 
-        logger.info(
+        logger.debug(
             f"update map with map clicked: layer=city->region, "
             f"ratio={ratio}, interval={interval}, loc={clicked_city}"
         )
@@ -178,7 +206,7 @@ def update_map_with_filters_clicked(interval, ratio, map_state, map_cache):
         map_cache["data"][0]["location"] = list(city_risk.keys())
         map_cache["data"][0]["z"] = list(city_risk.values())
 
-        logger.info(
+        logger.debug(
             f"update map with filter state changes: layer=city, "
             f"ratio={ratio}, interval={interval}, loc=台灣"
         )
@@ -213,7 +241,7 @@ def update_map_with_filters_clicked(interval, ratio, map_state, map_cache):
         # get region risk data for current city
         region_risk = get_region_data(current_city, interval, ratio)
 
-        logger.info(
+        logger.debug(
             f"update map with filter state changes: layer=region, "
             f"ratio={ratio}, interval={interval}, loc={current_city}"
         )

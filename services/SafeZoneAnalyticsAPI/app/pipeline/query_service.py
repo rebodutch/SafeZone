@@ -35,7 +35,7 @@ def load_city_region_cache():
                 geo_cache[city.name] = (city.id, {})
             if region:
                 geo_cache[city.name][1][region.name] = region.id
-    logger.info("City-region cache loaded successfully.")
+    logger.debug("City-region cache loaded successfully.")
 
 
 def load_populations_cache():
@@ -50,10 +50,10 @@ def load_populations_cache():
             if city_id not in populations_cache:
                 populations_cache[city_id] = {}
             populations_cache[city_id][region_id] = population
-    logger.info("population cache loaded successfully.")
+    logger.debug("population cache loaded successfully.")
 
 
-def query_population(city_id, region_id = None):
+def query_population(city_id, region_id=None):
     if region_id:
         return populations_cache[city_id][region_id]
     aggregated_population = 0
@@ -74,7 +74,7 @@ def query_cases(**params):
 
 
 def query_cases_by_region(**params):
-    logger.debug(f"Querying cases by region: {params}")
+    logger.debug(f"Query region cases with {params}.")
 
     engine = create_engine(DB_URL)
     with sessionmaker(bind=engine)() as session:
@@ -87,8 +87,6 @@ def query_cases_by_region(**params):
         city_id = geo_cache[params["city"]][0]
         region_id = geo_cache[params["city"]][1][params["region"]]
 
-        logger.debug(f"city_id={city_id} region_id={region_id}")
-
         # query cases by region
         query = select(func.sum(covid_cases.c.cases).label("total_cases")).where(
             covid_cases.c.date >= params["start_date"],
@@ -99,28 +97,32 @@ def query_cases_by_region(**params):
         cases = session.execute(query).scalar()
         cases = cases if cases else 0
 
-        if "ratio" in params and params["ratio"]:
-            population = query_population(city_id, region_id)
-            cases =round(cases / population, 5)
-            return {
-                "start_date": params["start_date"].strftime("%Y-%m-%d"),
-                "end_date": params["end_date"].strftime("%Y-%m-%d"),
-                "city": params["city"],
-                "region": params["region"],
-                "cases_population_ratio": cases,
-            }
-        else:
-            return {
-                "start_date": params["start_date"].strftime("%Y-%m-%d"),
-                "end_date": params["end_date"].strftime("%Y-%m-%d"),
-                "city": params["city"],
-                "region": params["region"],
-                "aggregated_cases": cases
-            }
+    logger.debug(f"Query region cases successful with {params}.")
+
+    if "ratio" in params and params["ratio"]:
+        # calculate cases to population ratio
+        population = query_population(city_id, region_id)
+        cases = round(cases * 10000 / population, 5)
+
+        return {
+            "start_date": params["start_date"].strftime("%Y-%m-%d"),
+            "end_date": params["end_date"].strftime("%Y-%m-%d"),
+            "city": params["city"],
+            "region": params["region"],
+            "cases_population_ratio": cases,
+        }
+    else:
+        return {
+            "start_date": params["start_date"].strftime("%Y-%m-%d"),
+            "end_date": params["end_date"].strftime("%Y-%m-%d"),
+            "city": params["city"],
+            "region": params["region"],
+            "aggregated_cases": cases,
+        }
 
 
 def query_cases_by_city(**params):
-    logger.debug(f"Querying cases by city: {params}")
+    logger.debug(f"Query city case with {params}.")
 
     engine = create_engine(DB_URL)
     with sessionmaker(bind=engine)() as session:
@@ -137,28 +139,32 @@ def query_cases_by_city(**params):
         )
         cases = session.execute(query).scalar()
         cases = cases if cases else 0
-    
-        if "ratio" in params and params["ratio"]:
-            population = query_population(city_id)
-            cases =round(cases / population, 5)
-            return {
-                "start_date": params["start_date"].strftime("%Y-%m-%d"),
-                "end_date": params["end_date"].strftime("%Y-%m-%d"),
-                "city": params["city"],
-                "cases_population_ratio": cases,
-            }
 
-        else:
-            return {
-                "start_date": params["start_date"].strftime("%Y-%m-%d"),
-                "end_date": params["end_date"].strftime("%Y-%m-%d"),
-                "city": params["city"],
-                "aggregated_cases": cases,
-            }
+    logger.debug(f"Query city cases successful with {params}.")
+
+    if "ratio" in params and params["ratio"]:
+        # calculate cases to population ratio
+        population = query_population(city_id)
+        cases = round(cases * 10000 / population, 5)
+
+        return {
+            "start_date": params["start_date"].strftime("%Y-%m-%d"),
+            "end_date": params["end_date"].strftime("%Y-%m-%d"),
+            "city": params["city"],
+            "cases_population_ratio": cases,
+        }
+
+    else:
+        return {
+            "start_date": params["start_date"].strftime("%Y-%m-%d"),
+            "end_date": params["end_date"].strftime("%Y-%m-%d"),
+            "city": params["city"],
+            "aggregated_cases": cases,
+        }
 
 
 def query_cases_national(**params):
-    logger.debug(f"Querying national cases: {params}")
+    logger.debug(f"Querying national cases with {params}.")
 
     engine = create_engine(DB_URL)
     with sessionmaker(bind=engine)() as session:
@@ -170,6 +176,8 @@ def query_cases_national(**params):
         cases = session.execute(query).scalar()
         cases = cases if cases else 0
 
+    logger.debug(f"Query national cases successful with {params}.")
+    
     return {
         "start_date": params["start_date"].strftime("%Y-%m-%d"),
         "end_date": params["end_date"].strftime("%Y-%m-%d"),

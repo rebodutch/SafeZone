@@ -3,6 +3,7 @@ import datetime
 
 from services.api_caller import update_national, update_city, update_region
 from config.logger import get_logger
+from config.time_manager import get_now
 
 logger = get_logger()
 
@@ -19,7 +20,7 @@ def load_taiwan_admin():
 def get_national_cases(interval):
     if interval not in ["1", "7"]:
         return 0
-    now_date = datetime.date.today().strftime("%Y-%m-%d")
+    now_date = get_now().strftime("%Y-%m-%d")
     # update national cases
     return update_national(now_date, interval)
 
@@ -27,7 +28,7 @@ def get_national_cases(interval):
 def get_region_data(city, interval, ratio=False):
     # load taiwan geo data
     taiwan_admin = load_taiwan_admin()
-    now_date = datetime.date.today().strftime("%Y-%m-%d")
+    now_date = get_now().strftime("%Y-%m-%d")
 
     data = {}
     for region in taiwan_admin[city]:
@@ -42,7 +43,7 @@ def get_region_data(city, interval, ratio=False):
 def get_city_data(interval, ratio=False):
     # load taiwan geo data
     taiwan_admin = load_taiwan_admin()
-    now_date = datetime.date.today()
+    now_date = get_now().strftime("%Y-%m-%d")
 
     data = {}
     for city in taiwan_admin.keys():

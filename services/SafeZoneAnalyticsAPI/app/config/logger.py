@@ -1,22 +1,26 @@
 # app/config/logger.py
 import logging
 from logging.handlers import RotatingFileHandler
+
 from config.settings import LOG_LEVEL, MAX_LOG_FILE_SIZE
+from config.settings import SERVICE_NAME
 
-
-if LOG_LEVEL == "DEBUG":
-    LOG_LEVEL = logging.DEBUG
-else:
-    LOG_LEVEL = logging.INFO
-
-
-logger = logging.getLogger("logs/app.logger")
+logger = logging.getLogger(SERVICE_NAME)
 
 
 def setup_handlers():
-    logger.setLevel(LOG_LEVEL)
+    # Set the log level based on the LOG_LEVEL environment variable [DEBUG, INFO, WARNING]
+    if LOG_LEVEL == "DEBUG":
+        logger.setLevel(logging.DEBUG)
+    elif LOG_LEVEL == "INFO":
+        logger.setLevel(logging.INFO)
+    elif LOG_LEVEL == "WARNING":
+        logger.setLevel(logging.WARNING)
+    else:
+        logger.setLevel(logging.INFO)
+
     file_handler = RotatingFileHandler(
-        "app.log", maxBytes=MAX_LOG_FILE_SIZE, backupCount=3
+        f"{SERVICE_NAME}.log", maxBytes=MAX_LOG_FILE_SIZE, backupCount=3
     )
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -34,14 +38,4 @@ if not logger.handlers:
 
 
 def get_logger():
-    """
-    Returns the logger instance for the application.
-
-    This logger is configured with both file and console handlers.
-    The file handler writes logs to 'app.log' with a maximum size of 5 MB and keeps 3 backup files.
-    The console handler outputs logs to the console.
-
-    Returns:
-        logging.Logger: The configured logger instance.
-    """
     return logger

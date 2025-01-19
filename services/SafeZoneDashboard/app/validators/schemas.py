@@ -22,7 +22,7 @@ class DataDetail(BaseModel):
     city: Optional[str] = Field(None, min_length=1, max_length=50, description="The length of city name is between 1 to 50.")
     region: Optional[str] = Field(None, min_length=1, max_length=50, description="The length of region name is between 1 to 50.")
     aggregated_cases: Optional[int] = Field(None, ge=0, description="'cases' must be a positive integer.")
-    cases_population_ratio: Optional[float] = Field(None, ge=0, le=1, description="'cases_population_ratio' must be a float between 0 and 1.")
+    cases_population_ratio: Optional[float] = Field(None, ge=0, le=100, description="'cases_population_ratio' must be a float between 0 and 1.")
 
 
 class ErrorDetail(BaseModel):

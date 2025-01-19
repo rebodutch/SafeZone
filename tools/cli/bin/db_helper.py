@@ -2,7 +2,26 @@ import json
 import csv
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 from utils.db.schema import cities, regions, covid_cases, populations, metadata
+
+def reset_db_id(db_url):
+    """
+    Reset the id of the database.
+
+    """
+    # init the session
+    engine = create_engine(db_url)
+    # Create all tables
+    metadata.create_all(engine)
+
+    with Session(engine) as session:
+        # Reset the id of the tables
+        session.execute(text("ALTER SEQUENCE cities_id_seq RESTART WITH 1"))
+        session.execute(text("ALTER SEQUENCE regions_id_seq RESTART WITH 1"))
+        session.execute(text("ALTER SEQUENCE covid_cases_id_seq RESTART WITH 1"))
+        session.execute(text("ALTER SEQUENCE populations_id_seq RESTART WITH 1"))
+        session.commit()
 
 
 def clear_db(db_url):
@@ -17,10 +36,11 @@ def clear_db(db_url):
 
     with Session(engine) as session:
         # Delete all data in the tables
-        session.execute(cities.delete())
-        session.execute(regions.delete())
-        session.execute(covid_cases.delete())
+        # the delete squences are important, because of the foreign key constraints
         session.execute(populations.delete())
+        session.execute(covid_cases.delete())
+        session.execute(regions.delete())
+        session.execute(cities.delete())
         session.commit()
 
 
@@ -43,7 +63,7 @@ def init_db(db_url):
 
 def init_administrative_data(engine):
     # Load administrative data of Taiwan
-    admin_file_path = "/utils/geo_data/administrative/taiwan_admin.json.json"
+    admin_file_path = "/app/utils/geo_data/administrative/taiwan_admin.json"
     with open(admin_file_path, encoding="utf-8") as f:
         admin_data = json.load(f)
 
@@ -74,33 +94,33 @@ def init_administrative_data(engine):
 
 def init_population_data(engine):
     # Load population data of Taiwan
-    population_file_path = "/app/utils/geo_data/towns_population.csv"
+    population_file_path = "/app/utils/geo_data/population/region_population.csv"
     with open(population_file_path, encoding="utf-8") as f:
         population_data = csv.DictReader(f)
         # Skip the header
         next(population_data, None)
 
-    for row in population_data:
-        # Get city, region, and population by header name in the CSV file
-        city = row["COUNTY"]
-        region = row["TOWN"]
-        population = row["P_CNT"]
+        for row in population_data:
+            # Get city, region, and population by header name in the CSV file
+            city = row["COUNTY"]
+            region = row["TOWN"]
+            population = row["P_CNT"]
 
-        with Session(engine) as session:
-            # Get city_id and region_id
-            city_id = session.execute(
-                select(cities.c.id).where(cities.c.name == city)
-            ).fetchone()[0]
-            region_id = session.execute(
-                select(regions.c.id).where(
-                    regions.c.city_id == city_id, regions.c.name == region
+            with Session(engine) as session:
+                # Get city_id and region_id
+                city_id = session.execute(
+                    select(cities.c.id).where(cities.c.name == city)
+                ).fetchone()[0]
+                region_id = session.execute(
+                    select(regions.c.id).where(
+                        regions.c.city_id == city_id, regions.c.name == region
+                    )
+                ).fetchone()[0]
+                # Insert population data
+                session.execute(
+                    populations.insert().values(
+                        city_id=city_id, region_id=region_id, population=population
+                    )
                 )
-            ).fetchone()[0]
-            # Insert population data
-            session.execute(
-                populations.insert().values(
-                    city_id=city_id, region_id=region_id, population=population
-                )
-            )
-            print(f"city = {city}, region = {region}, population = {population}")
-            session.commit()
+                print(f"city = {city}, region = {region}, population = {population}")
+                session.commit()

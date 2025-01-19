@@ -1,11 +1,13 @@
-from datetime import datetime, timedelta
 from dash import Input, Output, State
+
+from config.logger import get_logger
+
+logger = get_logger()
 
 
 def interval_button_callbacks(app):
     @app.callback(
         [
-            Output("risk-map-title", "children"),
             Output("btn-3-days", "active"),
             Output("btn-7-days", "active"),
             Output("btn-14-days", "active"),
@@ -20,7 +22,7 @@ def interval_button_callbacks(app):
         ],
         [State("ratio-button-state", "data")],
     )
-    def update_active_button(ts1, ts2, ts3, ts4, data):
+    def update_active_button(ts1, ts2, ts3, ts4, ratio):
         timestamps = {
             "btn-3-days": ts1,
             "btn-7-days": ts2,
@@ -30,25 +32,11 @@ def interval_button_callbacks(app):
 
         # find the newest clicked button
         active_button = max(timestamps, key=lambda x: timestamps[x] or 0)
-        # update the risk map based on the active button
-        print(active_button, data["active"])
-        # update_risk_map(active_button)
 
-        # update the start and end date based on the active button
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=int(active_button.split("-")[1].split("-")[0]))
-        end_date = end_date.strftime("%Y-%m-%d")
-        start_date = start_date.strftime("%Y-%m-%d")  
-        
-        # update the title based on the active button
-        if data["active"] == "btn-cases":
-            ratio_str = "依病例數"
-        else:
-            ratio_str = "依比例"
+        logger.debug(f"Interval active button is {active_button}.")
 
         # return the active state of each button
         return [
-            f"{start_date} ~ {end_date} 疫情風險圖 - {ratio_str}",
             active_button == "btn-3-days",
             active_button == "btn-7-days",
             active_button == "btn-14-days",
@@ -68,9 +56,8 @@ def ratio_button_callbacks(app):
             Input("btn-cases", "n_clicks_timestamp"),
             Input("btn-ratio", "n_clicks_timestamp"),
         ],
-        [State("interval-button-state", "data")],
     )
-    def update_active_button(ts1, ts2, data):
+    def update_active_button(ts1, ts2):
         timestamps = {
             "btn-cases": ts1,
             "btn-ratio": ts2,
@@ -78,13 +65,12 @@ def ratio_button_callbacks(app):
 
         # find the newest clicked button
         active_button = max(timestamps, key=lambda x: timestamps[x] or 0)
-        # update the risk map based on the active button
-        print(active_button, data["active"])
-        # update_risk_map(active_button)
+
+        logger.debug(f"Ratio active button is {active_button}.")
 
         # return the active state of each button
         return [
             active_button == "btn-cases",
             active_button == "btn-ratio",
-            {"active": active_button.split("-")[1]=="ratio"},
+            {"active": active_button.split("-")[1] == "ratio"},
         ]

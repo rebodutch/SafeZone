@@ -28,6 +28,8 @@ def create_case(case):
             - cases (int): The number of cases.
     """
     try:
+        logger.debug(f"Creating case: {case}")
+
         engine = create_engine(DB_URL)
         with sessionmaker(bind=engine)() as session:
             # check if city exist and cache its id
@@ -55,6 +57,9 @@ def create_case(case):
             )
             session.add(covid_case)
             session.commit()
+
+        logger.debug(f"Case created: {case}")
+
     # handle exception is rasied by inserted the duplicate data into database
     except IntegrityError as e:
         raise DataDuplicateException()

@@ -15,10 +15,11 @@ def send_data(data):
         for case in data:
             OutputValidator(**case)
             # send the data to the CovidDataIngestor service
+            logger.debug(f"Sending the case = {case} to ingrstor.")
+            
             requests.post(INGESTOR_URL, json=case, timeout=10)
 
-            logger.info(
-                f"The case = {case} send successfully to INGESTOR at {INGESTOR_URL}"
-            )
+            logger.debug(f"Case = {case} sent to ingrstor.")
+            
     except ValidationError as e:
         raise ServiceValidationError(errors=e)

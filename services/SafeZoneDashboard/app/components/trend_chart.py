@@ -44,9 +44,9 @@ def create_table():
     # add the data rows
     for item in data:
         # calculate the width of the bar
-        bar_width = (item["cases"] / max_cases) * 100 * 0.8
+        bar_width = (item["cases"] / max_cases) * 100 * 0.8 if max_cases > 0 else 0
         # calculate the opacity of the bar
-        bar_opacity = item["cases"] / max_cases
+        bar_opacity = item["cases"] / max_cases if max_cases > 0 else 0
         rows.append(
             html.Tr(
                 [

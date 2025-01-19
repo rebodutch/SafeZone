@@ -1,9 +1,10 @@
 from dash import html
 import dash_bootstrap_components as dbc
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from services.update_cases import get_national_cases
 from components.trend_chart import get_trend_bar
+from config.time_manager import get_now
 
 def get_case_card():
     return dbc.Card(
@@ -35,7 +36,7 @@ def get_case_card():
 )
 
 def get_top_cities_card():
-    end_date = datetime.today()
+    end_date = get_now()
     start_date = end_date - timedelta(days=7)
     # format the date
     start_date = start_date.strftime("%Y-%m-%d")
