@@ -1,64 +1,94 @@
-import json
+# tools/relay/bin/db_helper.py
+"""
+This module is used to interact with the database.
+"""
+# Standard library imports
 import csv
+import json
+
+# Third-party imports
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
-from utils.db.schema import cities, regions, covid_cases, populations, metadata
 
-def reset_db_id(db_url):
+# project imports
+from utils.db.schema import cities, regions, covid_cases, populations, metadata
+from config.settings import DB_URL
+from config.logger import get_logger
+
+logger = get_logger()
+
+
+def reset_db_id():
     """
     Reset the id of the database.
 
     """
     # init the session
-    engine = create_engine(db_url)
+    engine = create_engine(DB_URL)
     # Create all tables
     metadata.create_all(engine)
 
-    with Session(engine) as session:
-        # Reset the id of the tables
-        session.execute(text("ALTER SEQUENCE cities_id_seq RESTART WITH 1"))
-        session.execute(text("ALTER SEQUENCE regions_id_seq RESTART WITH 1"))
-        session.execute(text("ALTER SEQUENCE covid_cases_id_seq RESTART WITH 1"))
-        session.execute(text("ALTER SEQUENCE populations_id_seq RESTART WITH 1"))
-        session.commit()
+    try:
+        with Session(engine) as session:
+            # Reset the id of the tables
+            session.execute(text("ALTER SEQUENCE cities_id_seq RESTART WITH 1"))
+            session.execute(text("ALTER SEQUENCE regions_id_seq RESTART WITH 1"))
+            session.execute(text("ALTER SEQUENCE covid_cases_id_seq RESTART WITH 1"))
+            session.execute(text("ALTER SEQUENCE populations_id_seq RESTART WITH 1"))
+            session.commit()
+        return "Reset the id of the database successfully"
+    except Exception as e:
+        return f"Failed to reset the id of the database: {e}"
 
 
-def clear_db(db_url):
+def clear_db():
     """
     Clear the database.
 
     """
     # init the session
-    engine = create_engine(db_url)
+    engine = create_engine(DB_URL)
     # Create all tables
     metadata.create_all(engine)
 
-    with Session(engine) as session:
-        # Delete all data in the tables
-        # the delete squences are important, because of the foreign key constraints
-        session.execute(populations.delete())
-        session.execute(covid_cases.delete())
-        session.execute(regions.delete())
-        session.execute(cities.delete())
-        session.commit()
+    try:
+        with Session(engine) as session:
+            # Delete all data in the tables
+            # the delete squences are important, because of the foreign key constraints
+            session.execute(covid_cases.delete())
+            session.execute(populations.delete())
+            session.execute(regions.delete())
+            session.execute(cities.delete())
+            session.commit()
+        return "Cleared the database successfully"
+    except Exception as e:
+        return f"Failed to clear the database: {e}"
 
 
-def init_db(db_url):
+def init_db():
     """
     Initialize the database with the taiwan administrative data and population data.
 
     """
     # init the session
-    engine = create_engine(db_url)
+    engine = create_engine(DB_URL)
     # Create all tables
     metadata.create_all(engine)
 
     # Load administrative data of Taiwan
-    init_administrative_data(engine)
+    try:
+        init_administrative_data(engine)
+    except Exception as e:
+        return "Failed to initialize the database with administrative"
 
     # Load population data of Taiwan
-    init_population_data(engine)
+    try:
+        init_population_data(engine)
+    except Exception as e:
+        return "Failed to initialize the database with population"
+
+    return "Initialized the database successfully"
 
 
 def init_administrative_data(engine):
@@ -79,13 +109,13 @@ def init_administrative_data(engine):
             city_query = select(cities).where(cities.c.id == cities_id)
             city_result = session.execute(city_query).fetchone()
             if city_result:
-                print(f"city '{city}', is created, id {city_result}")
+                logger.debug(f"city '{city}', is created, id {city_result}")
             else:
-                print(f"city '{city}', is not created")
+                logger.debug(f"city '{city}', is not created")
 
             # Insert regions for the city
             for value in admin_data[city]:
-                print(f"city = {city}, region = {value}")
+                logger.debug(f"city = {city}, region = {value}")
                 session.execute(regions.insert().values(name=value, city_id=cities_id))
 
         # Commit the transaction
@@ -122,5 +152,7 @@ def init_population_data(engine):
                         city_id=city_id, region_id=region_id, population=population
                     )
                 )
-                print(f"city = {city}, region = {region}, population = {population}")
+                logger.debug(
+                    f"city = {city}, region = {region}, population = {population}"
+                )
                 session.commit()

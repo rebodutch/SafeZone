@@ -1,19 +1,36 @@
 SERVICE_NAMES := CovidDataIngestor CovidDataSimulator SafeZoneAnalyticsAPI SafeZoneDashboard
-ENV ?= dev
+
 
 # Per-service commands
 test-%:
-	bash scripts/$*/test.shit 
+	@if [ "$*" != "all" ]; then \
+		echo "#######################################################"; \
+		echo " Running tests for: $*"; \
+		echo "#######################################################\n"; \
+		bash scripts/$*/test.sh; \
+		echo "\n[INFO] Tests completed for: $*"; \
+		echo "--------------------------------------------------------\n\n"; \
+	fi
 
 build-%:
-	bash scripts/$*/build.sh
+	@if [ "$*" != "all" ]; then \
+		echo "#######################################################"; \
+		echo " Running tests for: $*"; \
+		echo "#######################################################\n"; \
+		bash scripts/$*/build.sh; \
+		echo "\n[INFO] Tests completed for: $*"; \
+		echo "--------------------------------------------------------\n\n"; \
+	fi
 
-db-init:
-	bash scripts/DB/create_init_volumn.sh
-	 
+manual-test-ui:
+	bash scripts/SafeZoneDashboard/manual-test.sh
+
 # Global commands
 test-all: $(addprefix test-, $(SERVICE_NAMES))
+	@echo "[INFO] ALL TESTS PASSED!"
+	
 build-all: $(addprefix build-, $(SERVICE_NAMES))
+	@echo "[INFO] ALL IMAGE BUILT!"
 
 clean:
 	rm -rf build/ dist/ *.log

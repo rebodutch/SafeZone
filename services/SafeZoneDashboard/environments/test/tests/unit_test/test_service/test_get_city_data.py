@@ -66,7 +66,7 @@ def get_case_describes(case):
 
 
 # test the update_trends function
-@patch("services.update_cases.load_taiwan_geo")
+@patch("services.update_cases.load_taiwan_admin")
 @pytest.mark.parametrize(
     "case", load_test_cases("cases_success.json"), ids=get_case_describes
 )
@@ -92,7 +92,7 @@ def test_update_trends(mock_load_geo, case, frozen_time):
 
 
 # test the update_trends function with the error response
-@patch("services.update_cases.load_taiwan_geo")
+@patch("services.update_cases.load_taiwan_admin")
 @pytest.mark.parametrize(
     "case", load_test_cases("cases_resp_error.json"), ids=get_case_describes
 )

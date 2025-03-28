@@ -13,7 +13,7 @@ echo "No explicit compilation step required for Python..."
 
 # Step 3: build docker image
 echo "Building Docker image..."
-docker build --quiet -t "$IMAGE_NAME:$IMAGE_TAG" -f "$DOCKERFILE_PATH/Dockerfile.test" .
+docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f "$DOCKERFILE_PATH/Dockerfile.test" .
 
 # Step 4: stop the container if it is running from previous scripts
 if [ "$(docker ps -aq -f name="$CONTAINER_NAME")" ]; then
@@ -25,9 +25,10 @@ if [ "$(docker ps -aq -f name="$CONTAINER_NAME")" ]; then
 fi
 
 # Step 5: run the tests in the container
-# unit test
-echo "Running unit tests..."
-docker run --rm \
+# manual test: integration test
+echo "Running the manual test..."
+docker run -it \
+  -p 8080:8080 \
   -v "$(pwd)/utils:/app/utils" \
   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-  pytest test/unit_test
+  python3 /test/manual_test/integration_test/test.py

@@ -89,13 +89,13 @@ def get_case_describes(case):
 
 
 # test the update_cases function in correct scenarios
-@patch("services.update_cases.load_taiwan_geo")
+@patch("services.update_cases.load_taiwan_admin")
 @pytest.mark.parametrize(
     "case", load_test_cases("cases_success.json"), ids=get_case_describes
 )
 @responses.activate
 def test_update_trends(mock_load_geo, case, frozen_time):
-    # mock the load_taiwan_geo function
+    # mock the load_taiwan_admin function
     mock_load_geo.return_value = case["mock_regions"]
     
     with frozen_time("2023-06-26"):
@@ -122,12 +122,12 @@ def test_update_trends(mock_load_geo, case, frozen_time):
 
 
 # test the update_cases function in parameters error scenarios
-@patch("services.update_cases.load_taiwan_geo")
+@patch("services.update_cases.load_taiwan_admin")
 @pytest.mark.parametrize(
     "case", load_test_cases("cases_params_error.json"), ids=get_case_describes
 )
 def test_update_map_params_error(mock_load_geo, case, frozen_time):
-    # mock the load_taiwan_geo function
+    # mock the load_taiwan_admin function
     mock_load_geo.return_value = case["mock_regions"]
     
     # get the parameters
@@ -140,13 +140,13 @@ def test_update_map_params_error(mock_load_geo, case, frozen_time):
 
 
 # test the update_cases function in response error scenarios
-@patch("services.update_cases.load_taiwan_geo")
+@patch("services.update_cases.load_taiwan_admin")
 @pytest.mark.parametrize(
     "case", load_test_cases("cases_resp_error.json"), ids=get_case_describes
 )
 @responses.activate
 def test_update_map_params_error(mock_load_geo, case, frozen_time):
-    # mock the load_taiwan_geo function
+    # mock the load_taiwan_admin function
     mock_load_geo.return_value = case["mock_regions"]
     
     with frozen_time("2023-06-26"):

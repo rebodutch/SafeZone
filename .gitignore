@@ -1,2 +1,13 @@
+# ignore python compiled files
 *.pyc
 __pycache__/
+
+# ingore .env file
+*.env
+*.venv
+
+# ignore .vscode
+.vscode
+
+# ignore secrets
+*secret*/

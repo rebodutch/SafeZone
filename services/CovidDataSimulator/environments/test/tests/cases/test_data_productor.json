@@ -1,20 +1,14 @@
 [
     {
         "test_describes": "Daily data producted test in correct senario",
-        "component_under_test": "daily_data_productor",  
+        "component_under_test": "daily_data_productor",
         "date": "2023-03-20",
         "expected_filter_data": [
             {
                 "date": "2023-03-20",
                 "city": "台北市",
                 "region": "中山區",
-                "cases": 1
-            },
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "中山區",
-                "cases": 1
+                "cases": 2
             },
             {
                 "date": "2023-03-20",
@@ -26,7 +20,7 @@
     },
     {
         "test_describes": "Interval data producted test in correct senario",
-        "component_under_test": "interval_data_productor",  
+        "component_under_test": "interval_data_productor",
         "start_date": "2023-03-20",
         "end_date": "2023-04-01",
         "expected_filter_data": [
@@ -34,13 +28,7 @@
                 "date": "2023-03-20",
                 "city": "台北市",
                 "region": "中山區",
-                "cases": 1
-            },
-            {
-                "date": "2023-03-20",
-                "city": "台北市",
-                "region": "中山區",
-                "cases": 1
+                "cases": 2
             },
             {
                 "date": "2023-03-20",
@@ -58,13 +46,7 @@
                 "date": "2023-03-21",
                 "city": "台北市",
                 "region": "信義區",
-                "cases": 1
-            },
-            {
-                "date": "2023-03-21",
-                "city": "台北市",
-                "region": "信義區",
-                "cases": 1
+                "cases": 2
             },
             {
                 "date": "2023-03-22",
@@ -76,13 +58,7 @@
                 "date": "2023-03-22",
                 "city": "台北市",
                 "region": "信義區",
-                "cases": 1
-            },
-            {
-                "date": "2023-03-22",
-                "city": "台北市",
-                "region": "信義區",
-                "cases": 1
+                "cases": 2
             },
             {
                 "date": "2023-04-01",
@@ -101,18 +77,18 @@
                 "city": "台北市",
                 "region": "大安區",
                 "cases": 1
-            }
+            }  
         ]
     },
     {
         "test_describes": "Daily data producted test in empty senario",
-        "component_under_test": "daily_data_productor",  
+        "component_under_test": "daily_data_productor",
         "date": "2023-03-25",
         "expected_filter_data": []
     },
     {
         "test_describes": "interval data producted test in empty senario",
-        "component_under_test": "interval_data_productor",  
+        "component_under_test": "interval_data_productor",
         "start_date": "2023-05-01",
         "end_date": "2023-06-01",
         "expected_filter_data": []

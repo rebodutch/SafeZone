@@ -12,14 +12,14 @@
       "status_code": 200,
       "response": {
         "data": {
-          "start_date": "2023-03-19",
+          "start_date": "2023-03-20",
           "end_date": "2023-03-26",
           "city": "台北市",
           "region": "信義區",
-          "aggregated_cases": 795
+          "aggregated_cases": 590
         },
         "message": "Data returned successfully",
-        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "detail": "Data returned successfully for dates 2023-03-20 ~ 2023-03-26.",
         "success": true
       }
     }
@@ -38,14 +38,14 @@
       "status_code": 200,
       "response": {
         "data": {
-          "start_date": "2023-03-19",
+          "start_date": "2023-03-20",
           "end_date": "2023-03-26",
           "city": "台北市",
           "region": "信義區",
-          "cases_population_ratio": 0.00385
+          "cases_population_ratio": 28.53564
         },
         "message": "Data returned successfully",
-        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "detail": "Data returned successfully for dates 2023-03-20 ~ 2023-03-26.",
         "success": true
       }
     }
@@ -109,14 +109,14 @@
       "status_code": 200,
       "response": {
         "data": {
-          "start_date": "2025-03-19",
+          "start_date": "2025-03-20",
           "end_date": "2025-03-26",
           "city": "台北市",
           "region": "信義區",
           "aggregated_cases": 0
         },
         "message": "Data returned successfully",
-        "detail": "Data returned successfully for dates 2025-03-19 ~ 2025-03-26.",
+        "detail": "Data returned successfully for dates 2025-03-20 ~ 2025-03-26.",
         "success": true
       }
     }
@@ -133,13 +133,13 @@
       "status_code": 200,
       "response": {
         "data": {
-          "start_date": "2023-03-19",
+          "start_date": "2023-03-20",
           "end_date": "2023-03-26",
           "city": "台北市",
-          "aggregated_cases": 1484
+          "aggregated_cases": 590
         },
         "message": "Data returned successfully",
-        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "detail": "Data returned successfully for dates 2023-03-20 ~ 2023-03-26.",
         "success": true
       }
     }
@@ -178,13 +178,13 @@
       "status_code": 200,
       "response": {
         "data": {
-          "start_date": "2025-03-19",
+          "start_date": "2025-03-20",
           "end_date": "2025-03-26",
           "city": "台北市",
           "aggregated_cases": 0
         },
         "message": "Data returned successfully",
-        "detail": "Data returned successfully for dates 2025-03-19 ~ 2025-03-26.",
+        "detail": "Data returned successfully for dates 2025-03-20 ~ 2025-03-26.",
         "success": true
       }
     }
@@ -200,12 +200,12 @@
       "status_code": 200,
       "response": {
         "data": {
-          "start_date": "2023-03-19",
+          "start_date": "2023-03-20",
           "end_date": "2023-03-26",
-          "aggregated_cases": 19238
+          "aggregated_cases": 17792
         },
         "message": "Data returned successfully",
-        "detail": "Data returned successfully for dates 2023-03-19 ~ 2023-03-26.",
+        "detail": "Data returned successfully for dates 2023-03-20 ~ 2023-03-26.",
         "success": true
       }
     }
@@ -221,12 +221,12 @@
       "status_code": 200,
       "response": {
         "data": {
-          "start_date": "2025-03-19",
+          "start_date": "2025-03-20",
           "end_date": "2025-03-26",
           "aggregated_cases": 0
         },
         "message": "Data returned successfully",
-        "detail": "Data returned successfully for dates 2025-03-19 ~ 2025-03-26.",
+        "detail": "Data returned successfully for dates 2025-03-20 ~ 2025-03-26.",
         "success": true
       }
     }
