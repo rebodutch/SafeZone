@@ -18,10 +18,6 @@ db_app = typer.Typer(help="Database control commands (init, clear, reset-id).")
 app.add_typer(db_app, name="db")
 app.add_typer(dataflow_app, name="dataflow")
 
-# relay service clients
-dataflow_client = DataflowClient()
-db_client = DBClient()
-
 
 @app.command()
 def login(
@@ -32,9 +28,6 @@ def login(
     """
     try:
         auth_login(url)
-        dataflow_client.set_root_url(url)
-        db_client.set_root_url(url)
-
     except Exception as e:
         print(f"Login fail: {e}")
         sys.exit(1)
@@ -55,7 +48,7 @@ def simulate(
     simulate the covid data for specific date by calling the simulate api.
     """
     try:
-        resp = dataflow_client.simulate(date=date, end_date=end_date, dry_run=dry_run)
+        resp = DataflowClient().simulate(date=date, end_date=end_date, dry_run=dry_run)
         print(resp)
     except Exception as e:
         print(f"Simulate fail: {e}")
@@ -74,7 +67,7 @@ def verify(
     verify the covid data in the database by api.
     """
     try:
-        resp = dataflow_client.verify(
+        resp = DataflowClient().verify(
             date=date, interval=interval, city=city, region=region, ratio=ratio
         )
         print(resp)
@@ -89,7 +82,7 @@ def init():
     initialize the covid data in the database.
     """
     try:
-        resp = db_client.init()
+        resp = DBClient().init()
         print(resp)
     except Exception as e:
         print(f"Init fail: {e}")
@@ -106,7 +99,7 @@ def clear():
         typer.echo("Stop the process!")
         raise typer.Abort()
     try:
-        resp = db_client.clear()
+        resp = DBClient().clear()
         print(resp)
     except Exception as e:
         print(f"Clear fail: {e}")
@@ -123,7 +116,7 @@ def reset():
         typer.echo("Stop the process!")
         raise typer.Abort()
     try:
-        resp = db_client.reset()
+        resp = DBClient().reset()
         print(resp)
     except Exception as e:
         print(f"Reset fail: {e}")

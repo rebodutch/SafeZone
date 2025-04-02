@@ -21,3 +21,5 @@ SERVER_PORT = int(os.getenv("SERVER_PORT", "80"))
 ## name and version of the service
 SERVICE_NAME = os.getenv("SERVICE_NAME", "cli_relay")
 SERVICE_VERSION = os.getenv("SERVICE_VERSION", "0.0.0")     
+# Google authentication settings
+ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "rebodutchman@gmail.com,").split(",")

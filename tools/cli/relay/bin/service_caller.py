@@ -3,7 +3,7 @@
 This module is used to call the services in cluster by api.
 """
 import requests
-from config.setting import SIMULATOR_URL, ANALYTICS_API_URL
+from config.settings import SIMULATOR_URL, ANALYTICS_API_URL
 
 def simulate(date: str, end_date: str = None):
     """

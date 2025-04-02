@@ -14,7 +14,7 @@ import bin.service_caller as service_caller
 from schemas.request import SimulateModel, VerifyModel
 from schemas.response import APIResponse
 from config.logger import get_logger
-from config.setting import ADMIN_EMAILS
+from config.settings import ADMIN_EMAILS
 
 
 router = APIRouter()
