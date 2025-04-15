@@ -17,6 +17,17 @@ router = APIRouter()
 logger = get_logger()
 
 
+@router.get("/health")
+async def health_check():
+    """
+    Health check endpoint to verify if the API is running.
+    """
+    return JSONResponse(
+        content={"status": "healthy"},
+        status_code=200,
+    )
+
+
 @router.get("/cases/region", response_model=APIResponse)
 async def process_data(params: RegionParameters = Depends()):
     end_date = params.now
@@ -29,8 +40,10 @@ async def process_data(params: RegionParameters = Depends()):
         "region": params.region,
         "ratio": False if not params.ratio else True,
     }
-    logger.debug(f"Received region-level request to query data with params {query_params}.")
-    
+    logger.debug(
+        f"Received region-level request to query data with params {query_params}."
+    )
+
     query_result = handle_query_request(query_params)
 
     logger.debug(f"Query region-level result: {query_result}")
@@ -60,7 +73,9 @@ async def process_data(params: CityParameters = Depends()):
         "ratio": False if not params.ratio else True,
     }
 
-    logger.debug(f"Received city-level request to query data with params {query_params}.")
+    logger.debug(
+        f"Received city-level request to query data with params {query_params}."
+    )
 
     query_result = handle_query_request(query_params)
 
@@ -86,7 +101,9 @@ async def process_data(params: NationalParameters = Depends()):
 
     query_params = {"start_date": start_date, "end_date": end_date}
 
-    logger.debug(f"Received national-level request to query data with params {query_params}.")
+    logger.debug(
+        f"Received national-level request to query data with params {query_params}."
+    )
 
     query_result = handle_query_request(query_params)
 

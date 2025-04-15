@@ -1,5 +1,6 @@
 import dash
 import dash_bootstrap_components as dbc
+from flask import jsonify
 
 from layout.dashboard_layout import get_dashboard_layout
 from callbacks.register import register_callbacks
@@ -10,6 +11,10 @@ def create_app():
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
     app.layout = get_dashboard_layout()
     register_callbacks(app)
+
+    @app.server.route("/health")
+    def health_check():
+        return jsonify({"status": "healthy"}), 200
     return app
 
 if __name__ == "__main__":

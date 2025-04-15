@@ -12,6 +12,16 @@ from config.logger import get_logger
 router = APIRouter()
 logger = get_logger()
 
+@router.get("/health")
+async def health_check():
+    """
+    Health check endpoint to verify if the API is running.
+    """
+    return JSONResponse(
+        content={"status": "healthy"},
+        status_code=200,
+    )
+
 
 @router.get("/simulate/daily", response_model=APIResponse)
 async def process_data(params: DailyParameters = Depends()):

@@ -6,9 +6,15 @@ load_dotenv()
 
 # DB settings
 DB_URL = os.getenv("DB_URL", "sqlite:///relay.db")
+REPLICA_URL = os.getenv("REPLICA_URL", "sqlite:///relay.db")
 # Service settings
 SIMULATOR_URL = os.getenv("SIMULATOR_URL", "http://localhost:5000")
-ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://localhost:5001")
+INGESTOR_URL = os.getenv("INGESTOR_URL", "http://localhost:5001")
+ANALYTICS_API_URL = os.getenv("ANALYTICS_API_URL", "http://localhost:5002")
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:5003")
+
+# Redis settings
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 
 # logging settings
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

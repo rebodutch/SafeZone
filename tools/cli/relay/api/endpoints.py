@@ -1,4 +1,5 @@
 # tools/relay/api/endpoint.py
+from datetime import datetime
 # third party library
 # fastapi is a web framework for building APIs with Python.
 from fastapi import APIRouter, Depends, HTTPException, Depends
@@ -10,9 +11,10 @@ from google.auth.transport import requests
 
 # local library
 import bin.db_helper as db_helper
+import bin.system_helper as system_helper   
 import bin.service_caller as service_caller
 from schemas.request import SimulateModel, VerifyModel
-from schemas.response import APIResponse
+from schemas.response import APIResponse, PhaseResponseModel, VerifyResponseModel
 from config.logger import get_logger
 from config.settings import ADMIN_EMAILS
 
@@ -71,8 +73,10 @@ async def verify(
             region=data["region"],
             ratio=data["ratio"],
         )
-        return APIResponse(
-            success=True, message="Model verified successfully.", data=response
+        return VerifyResponseModel(
+            success=True, 
+            message="Model verified successfully.",
+            data=response,
         )
 
     except Exception as e:
@@ -83,6 +87,31 @@ async def verify(
             errors={"detail": str(e)},
         )
 
+# endpoint: /sys/phase
+@router.get("/sys/phase", response_model=APIResponse)
+async def get_phase(
+    role=Depends(get_current_user),
+):
+    try:
+        if role != "admin":
+            raise HTTPException(status_code=403, detail="Permission denied.")
+        logger.debug("Received request to get system phase.")
+        
+        phase = db_helper.get_phase()
+        
+        return PhaseResponseModel(
+            success=True, 
+            message="System phase retriefved successfully.", 
+            phase=phase,
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )
+    except Exception as e:
+        logger.debug(f"Error while getting system phase: {str(e)}")
+        return APIResponse(
+            success=False,
+            message="Error while getting system phase.",
+            errors={"detail": str(e)},
+        )
 
 # endpoint: /db/init
 @router.post("/db/init", response_model=APIResponse)

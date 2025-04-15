@@ -17,6 +17,17 @@ def type_checker(request: Request):
         raise InvalidContentTypeException()
 
 
+@router.get("/health")
+async def health_check():
+    """
+    Health check endpoint to verify if the API is running.
+    """
+    return JSONResponse(
+        content={"status": "healthy"},
+        status_code=200,
+    )
+
+
 @router.post("/collect", response_model=APIResponse)
 async def collect(
     payload: CollectData, content_type_check: None = Depends(type_checker)
@@ -31,14 +42,11 @@ async def collect(
     response = APIResponse(
         success=True,
         message="Data created successfully",
-        data={
-            "detail": f"The data was created in the database successfully."
-        },
+        data={"detail": f"The data was created in the database successfully."},
     )
     logger.debug("Data collection request handle success.")
-    
+
     return JSONResponse(
         content=response.model_dump(exclude_none=True),
         status_code=200,
     )
-

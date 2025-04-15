@@ -1,4 +1,4 @@
-# /tools/cli/app.py
+# /tools/cli/commander.app.py
 import sys
 
 import typer
@@ -12,10 +12,12 @@ app = typer.Typer(
     pretty_exceptions_enable=False,
 )
 
+db_app = typer.Typer(help="Database control commands (init, clear, reset_id).")
+sys_app = typer.Typer(help="System control commands (get_phase).")
 dataflow_app = typer.Typer(help="Dataflow control commands (simulate, verify).")
-db_app = typer.Typer(help="Database control commands (init, clear, reset-id).")
 
 app.add_typer(db_app, name="db")
+app.add_typer(sys_app, name="system")
 app.add_typer(dataflow_app, name="dataflow")
 
 
@@ -73,6 +75,18 @@ def verify(
         print(resp)
     except Exception as e:
         print(f"Verify fail: {e}")
+        sys.exit(1)
+
+@sys_app.command()
+def get_phase():
+    """
+    get the current phase of the system.
+    """
+    try:
+        resp = DBClient().get_phase()
+        print(resp)
+    except Exception as e:
+        print(f"Get phase fail: {e}")
         sys.exit(1)
 
 

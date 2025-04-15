@@ -70,6 +70,14 @@ class DataflowClient(BaseRelayClient):
         return self.get("dataflow/verify", payload)
 
 
+class SystemClient(BaseRelayClient):
+    def __init__(self):
+        super().__init__()
+
+    def get_phase(self):
+        return self.get("system/get_phase")
+    
+
 class DBClient(BaseRelayClient):
     def __init__(self):
         super().__init__()
