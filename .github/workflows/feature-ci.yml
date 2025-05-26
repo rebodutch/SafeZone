@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - feature/*
+      - refactor/*
 
 jobs:
   test:
@@ -36,10 +37,10 @@ jobs:
 
   compose:
     runs-on: ubuntu-latest
-    needs: build
+    # needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Run Docker Compose
-        run: docker compose -f local/compose/feature-ci.yml up -d
+        run: docker compose -f local/compose/feature-ci.yml --profile infra --profile core up -d
