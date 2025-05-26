@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import typer
 import rich
 
@@ -244,7 +246,7 @@ def login(
         )
         rich.print("Login success!")
     except Exception as e:
-        rich.print(f"[Login fail] {e}", err=True)
+        rich.print(f"[Login fail] {e}")
         raise typer.Exit(1)
 
 

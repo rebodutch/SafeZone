@@ -20,13 +20,12 @@ def auth_login(
 
     if not relay_url or not token_file or not client_secret_file:
         print("❌ Required environment variable missing: RELAY_URL, TOKEN_FILE, CLIENT_SECRET_FILE.")
-        return
+        raise ValueError("Missing required environment variables.")
 
     if not os.path.exists(token_file):
         if not os.path.exists(client_secret_file):
-            print(f"❌ Client secret file not found: {client_secret_file}")
             print("Please create a client secret file and set CLIENT_SECRET_FILE env.")
-            return
+            raise FileNotFoundError(f"❌ Client secret file not found: {client_secret_file}")
         try:
             flow = InstalledAppFlow.from_client_secrets_file(
                 client_secret_file,
@@ -36,9 +35,7 @@ def auth_login(
             req = requests.Request()
             idinfo = id_token.verify_oauth2_token(creds.id_token, req)
         except Exception as e:
-            print(f"❌ Google OAuth2 error: {e}")
-            return
-
+            raise Exception(f"❌ Google OAuth2 error: {e}")
         try:
             with open(token_file, "w") as token_out:
                 json.dump(
@@ -54,7 +51,7 @@ def auth_login(
                 print(f"🔗 Relay URL set to {relay_url}")
                 print(f"💾 Token saved to {token_file}")
         except Exception as e:
-            print(f"❌ Failed to save token: {e}")
+            raise Exception(f"Failed to save token: {e}")
     else:
         if verbose:
             print(f"✅ Token already exists. Loading from {token_file}")
