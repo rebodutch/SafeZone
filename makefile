@@ -1,7 +1,8 @@
 SERVICE_NAMES := CovidDataIngestor CovidDataSimulator SafeZoneAnalyticsAPI SafeZoneDashboard
+TOOL_NAMES := CLI TimeServer
 
 
-# Per-service commands
+# test doesnt coverage the toolkit, so we need to test them manually
 test-%:
 	@if [ "$*" != "all" ]; then \
 		echo "#######################################################"; \
@@ -15,42 +16,38 @@ test-%:
 build-%:
 	@if [ "$*" != "all" ]; then \
 		echo "#######################################################"; \
-		echo " Running tests for: $*"; \
+		echo " Building service: $*"; \
 		echo "#######################################################\n"; \
 		bash scripts/$*/build.sh; \
 		echo "\n[INFO] Tests completed for: $*"; \
 		echo "--------------------------------------------------------\n\n"; \
 	fi
 
-manual-test-ui:
-	bash scripts/SafeZoneDashboard/manual-test.sh
+build-tool-%:
+	@if [ "$*" != "all" ]; then \
+		echo "#######################################################"; \
+		echo " Building tool: $*"; \
+		echo "#######################################################\n"; \
+		bash scripts/toolkit/$*/build.sh; \
+		echo "\n[INFO] Build completed for tool: $*"; \
+		echo "--------------------------------------------------------\n\n"; \
+	fi
 
 # Global commands
 test-all: $(addprefix test-, $(SERVICE_NAMES))
 	@echo "[INFO] ALL TESTS PASSED!"
 	
-build-all: $(addprefix build-, $(SERVICE_NAMES))
+build-all: $(addprefix build-, $(SERVICE_NAMES)) \
+		   $(addprefix build-tool-, $(TOOL_NAMES))
 	@echo "[INFO] ALL IMAGE BUILT!"
 
-clean:
-	rm -rf build/ dist/ *.log
-
-format:
-	black services/*/
-
-ci-test:
-	make test-all ENV=test
-
-ci-build:
-	make build-all ENV=prod
 
 # Help
 help:
 	@echo "Available targets:"
 	@echo "  test-<service>       Run tests for a specific service"
 	@echo "  build-<service>      Build a specific service"
-	@echo "  docker-build-<service> Build Docker image for a specific service"
+	@echo "  build-tool-<tool>    Build a specific tool"
 	@echo "  test-all             Run tests for all services"
-	@echo "  build-all            Build all services"
-	@echo "  clean                Remove temporary files"
-	@echo "  format               Format codebase"
+	@echo "  build-all            Build all services/tools"
+	
