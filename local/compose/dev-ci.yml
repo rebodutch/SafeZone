@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - infra
+
+  cli-tool:
+    image: safezone_cli:latest
+    env_file:
+      - ../../tools/cli/.env
+    profiles:
+      - tools
+    stdin_open: true
+    tty: true
+
+  covid-simulator:
+    image: covid_data_simulator:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../services/CovidDataSimulator/environments/dev/.env.dev
+    environment:
+      - INGESTOR_URL=http://covid-ingestor:8000/collect
+    profiles:
+      - init
+
+
+  covid-ingestor:
+    image: covid_data_ingestor:latest
+    ports:
+      - "8001:8000"
+    env_file:
+      - ../../services/CovidDataIngestor/environments/dev/.env.dev
+    profiles:
+      - init
+
+  analytics-api:
+    image: safezone_analytics_api:latest
+    ports:
+      - "8002:8000"
+    env_file:
+      - ../../services/SafeZoneAnalyticsAPI/environments/dev/.env.dev
+    profiles:
+      - api
+
+  dashboard:
+    image: safezone_dashboard:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../../services/SafeZoneDashboard/environments/dev/.env.dev
+    environment:
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - FREEZE_TIME=2023-04-30
+    profiles:
+      - dashboard

@@ -9,5 +9,8 @@ __pycache__/
 # ignore .vscode
 .vscode
 
+# ingore temp docker compose volumes
+local/compose/data/
+
 # ignore secrets
 *secret*/

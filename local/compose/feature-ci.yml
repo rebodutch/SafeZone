@@ -7,6 +7,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: safezone
+    volumes:
+      - ./data/db_volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
@@ -15,14 +17,21 @@ services:
     profiles:
       - infra
 
-  cli-tool:
-    image: safezone_cli:latest
+  cli-command:
+    image: safezone_cli_command:latest
     env_file:
-      - ../../tools/cli/.env
+      - ../../toolkit/cli/command/.env
     profiles:
-      - tools
+      - infra
     stdin_open: true
     tty: true
+  
+  cli-relay:
+    image: safezone_cli_relay:latest
+    env_file:
+      - ../../toolkit/cli/relay/.env
+    profiles:
+      - infra
 
   covid-simulator:
     image: covid_data_simulator:latest
@@ -33,7 +42,7 @@ services:
     environment:
       - INGESTOR_URL=http://covid-ingestor:8000/collect
     profiles:
-      - init
+      - core
 
 
   covid-ingestor:
@@ -43,7 +52,7 @@ services:
     env_file:
       - ../../services/CovidDataIngestor/environments/dev/.env.dev
     profiles:
-      - init
+      - core
 
   analytics-api:
     image: safezone_analytics_api:latest
@@ -52,16 +61,4 @@ services:
     env_file:
       - ../../services/SafeZoneAnalyticsAPI/environments/dev/.env.dev
     profiles:
-      - api
-
-  dashboard:
-    image: safezone_dashboard:latest
-    ports:
-      - "8080:8080"
-    env_file:
-      - ../../services/SafeZoneDashboard/environments/dev/.env.dev
-    environment:
-      - ANALYTICS_API_URL=http://analytics-api:8000
-      - FREEZE_TIME=2023-04-30
-    profiles:
-      - dashboard
+      - core
