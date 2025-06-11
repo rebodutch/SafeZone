@@ -2,9 +2,6 @@
 #!/bin/bash
 set -e
 
-# 1. Initialize the database (this is required before simulation).
-szcli db init
-
 #--- time management ---
 # szcli system time set --mock=false --acceleration=1
 

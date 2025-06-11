@@ -6,7 +6,10 @@ IMAGE_REPO="ghcr.io/safezone"
 IMAGE_NAME="safezone_cli_command"
 IMAGE_TAG="latest"
 INSTANCE_NAME="safezone_cli_daemon"
-AUTH_DIR="$(pwd)/secrets/google_oath"
+# ENV variables for the daemon
+RELAY_URL="http://192.168.0.2:8000"
+RELAY_TIMEOUT=3600
+TOKEN_FILE="/app/.temp_token.json"
 # --------------------------------
 
 # 1. Remove exited containers (to avoid zombie containers occupying the name)
@@ -25,13 +28,13 @@ fi
 if ! docker ps -q --filter "name=$INSTANCE_NAME" | grep -q .; then
   echo "Docker instance $INSTANCE_NAME not found. Running..."
   docker run --name=$INSTANCE_NAME -d \
-    -v "$AUTH_DIR":/app/secrets \
-    -u $(id -u):$(id -g) \
-    "$IMAGE_NAME:$IMAGE_TAG" bash -c "tail -f /dev/null"
+    --env-file .secrets \
+    -e "RELAY_URL=$RELAY_URL" \
+    -e "RELAY_TIMEOUT=$RELAY_TIMEOUT" \
+    -e "TOKEN_FILE=$TOKEN_FILE" \
+    "$IMAGE_NAME:$IMAGE_TAG"
 fi
 
 # 4. Execute CLI command, aligning paths with local environment
-docker exec -it \
-  -u $(id -u):$(id -g) \
-  $INSTANCE_NAME szcli "$@"
+docker exec -it $INSTANCE_NAME szcli "$@"
 
