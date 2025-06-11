@@ -1,99 +1,158 @@
 # /bin/client.py
-import os
-import sys
+import time
 import json
-from typing import Optional, Type, Any
+import logging
+from typing import Optional
 
-import requests
-from dotenv import load_dotenv
+import requests  # type: ignore
+from pathlib import Path  # type: ignore
+from pydantic import BaseModel  # type: ignore
 
 from schemas.request import SimulateModel, VerifyModel, SetTimeModel, HealthModel
-from schemas.response import APIResponse
+from schemas.response import APIResponse, VerifyResponseModel
+from config.settings import RELAY_URL, RELAY_TIMEOUT
+from config.settings import TOKEN_FILE, CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN
 
-class BaseRelayClient:
-    def __init__(self, config: Optional[dict] = None):
-        self.config = config or self._load_config()
-        self.url = self.config["relay_url"]
-        self.token = self.config["id_token"]
-        self.user_email = self.config["email"]
+logger = logging.getLogger(__name__)
 
-    def _load_config(self):
-        load_dotenv()
-        config_file = os.getenv("CONFIG_FILE")
-        if not (config_file and os.path.exists(config_file)):
-            print("Login required. Please run login command.")
-            sys.exit(1)
-        with open(config_file) as f:
-            return json.load(f)
 
-    def _get_auth_header(self):
-        return {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
+class BaseAuthClient:
+    def __init__(self, trace_id: str):
+        self._refresh_token()
+        self.trace_id = trace_id
+
+    def _refresh_token(self) -> str:
+        logger.debug("Refreshing authentication token...")
+        # re-authenticate if token is missing or expired
+        payload = {
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "refresh_token": REFRESH_TOKEN,
+            "grant_type": "refresh_token",
         }
+        logger.debug(f"Payload for token refresh: {payload}")
+        resp = requests.post("https://oauth2.googleapis.com/token", data=payload)
+        token_data = resp.json()
 
-    def request(
+        # delete old token file if exists
+        if Path(TOKEN_FILE).exists():
+            Path(TOKEN_FILE).unlink()
+
+        # save the new token to file
+        with open(TOKEN_FILE, "w") as f:
+            token_save = {
+                "id_token": token_data["id_token"],
+                "exp": time.time() + token_data["expires_in"],
+            }
+            json.dump(token_save, f)
+        logger.debug(f"New token saved to {TOKEN_FILE}")
+
+        return token_data["id_token"]
+
+    def _get_id_token(self) -> str:
+        # if token is missing
+        if not Path(TOKEN_FILE).exists():
+            return self._refresh_token()
+        with open(TOKEN_FILE) as f:
+            token_data = json.load(f)
+            if time.time() < token_data["exp"]:
+                return token_data["id_token"]
+        # if token is expired
+        return self._refresh_token()
+
+    def _get_header(self):
+        header = {"content-type": "application/json"}
+        # generate the authentication header
+        header["Authorization"] = f"Bearer {self._get_id_token()}"
+        # generate the trace header
+        header["X-Trace-ID"] = self.trace_id
+        return header
+
+    def auth_request(
         self,
         method: str,
         path: str,
         payload: Optional[dict] = None,
-        response_model: Optional[Type[Any]] = None,
         params: Optional[dict] = None,
-    ):
-        try:
-            resp = requests.request(
-                method=method,
-                url=f"{self.url}/{path}",
-                headers=self._get_auth_header(),
-                json=payload if method != "GET" else None,
-                params=params if method == "GET" else None,
-                timeout=10,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return response_model(**data).model_dump() if response_model else data
-        except Exception as e:
-            print(f"[Request fail] {method} {path}: {e}")
-            raise
+        request_model: BaseModel = None,
+        response_model: BaseModel = APIResponse,
+    ) -> dict:
+        logger.debug(
+            f"[Request] {method} {RELAY_URL}/{path} with payload: {payload} and params: {params}"
+        )
+        if method in ["POST", "PUT", "PATCH"] and request_model and payload:
+            # Validate the payload against the request model if provided
+            payload = request_model(**payload).model_dump(mode="json")
+
+        elif method in ["GET", "DELETE"] and request_model and params:
+            # Validate the params against the request model if provided
+            params = request_model(**params).model_dump(mode="json")
+
+        resp = requests.request(
+            method=method,
+            url=f"{RELAY_URL}/{path}",
+            headers=self._get_header(),
+            json=(
+                payload if method not in ["GET", "DELETE"] else None
+            ),  # Adjust based on methods that don't typically have a body
+            params=params,
+            timeout=RELAY_TIMEOUT,
+        )
+        resp.raise_for_status()
+        resp_body = resp.json()
+        checked_resp = response_model(**resp_body)
+
+        return checked_resp.model_dump()
 
 
-class DataflowClient(BaseRelayClient):
+class DataflowClient(BaseAuthClient):
     def simulate(self, **kwargs):
-        payload = SimulateModel(**kwargs).model_dump(mode="json")
-        return self.request(
-            "POST", "dataflow/simulate", payload=payload, response_model=APIResponse
+        return self.auth_request(
+            method="POST",
+            path="dataflow/simulate",
+            payload=kwargs,
+            request_model=SimulateModel
         )
 
     def verify(self, **kwargs):
-        payload = VerifyModel(**kwargs).model_dump(mode="json")
-        return self.request(
-            "GET", "dataflow/verify", params=payload, response_model=APIResponse
+        return self.auth_request(
+            method="GET",
+            path="dataflow/verify",
+            params=kwargs,
+            request_model=VerifyModel,
+            response_model=VerifyResponseModel,
         )
 
-class TimeClient(BaseRelayClient):
+
+class TimeClient(BaseAuthClient):
     def now(self):
-        return self.request("GET", "system/time/now", response_model=APIResponse)
+        return self.auth_request(method="GET", path="system/time/now")
 
     def set(self, **kwargs):
-        payload = SetTimeModel(**kwargs).model_dump(mode="json")
-        return self.request(
-            "POST", "system/time/set", payload=payload, response_model=APIResponse
+        return self.auth_request(
+            method="POST",
+            path="system/time/set",
+            payload=SetTimeModel(**kwargs).model_dump(mode="json"),
+            request_model=SetTimeModel,
         )
 
     def get_status(self):
-        return self.request("GET", "system/time/status", response_model=APIResponse)
+        return self.auth_request(method="GET", path="system/time/status")
 
-class HealthClient(BaseRelayClient):
+
+class HealthClient(BaseAuthClient):
     def check(self, **kwargs):
-        payload = HealthModel(**kwargs).model_dump(mode="json")
-        return self.request(
-            "GET", "system/health", params=payload, response_model=APIResponse
+        return self.auth_request(
+            method="GET",
+            path="system/health",
+            params=kwargs,
+            request_model=HealthModel,
         )
 
-class DBClient(BaseRelayClient):
+
+class DBClient(BaseAuthClient):
     def init(self):
-        return self.request("POST", "db/init", response_model=APIResponse)
+        return self.auth_request(method="POST", path="db/init")
 
     def clear(self):
-        return self.request("POST", "db/clear", response_model=APIResponse)
-
+        return self.auth_request(method="POST", path="db/clear")
