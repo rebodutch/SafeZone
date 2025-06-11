@@ -5,18 +5,19 @@ This module is used to interact with the database.
 # Standard library imports
 import csv
 import json
+import logging
 
 # Third-party imports
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import text
+from sqlalchemy import create_engine, select  # type: ignore
+from sqlalchemy.orm import Session  # type: ignore
+from sqlalchemy.sql import text  # type: ignore
 
 # project imports
 from utils.db.schema import cities, regions, covid_cases, populations, metadata
 from config.settings import DB_URL
-from config.logger import get_logger
 
-logger = get_logger()
+
+logger = logging.getLogger(__name__)
 
 
 def reset_db_id():
@@ -29,17 +30,13 @@ def reset_db_id():
     # Create all tables
     metadata.create_all(engine)
 
-    try:
-        with Session(engine) as session:
-            # Reset the id of the tables
-            session.execute(text("ALTER SEQUENCE cities_id_seq RESTART WITH 1"))
-            session.execute(text("ALTER SEQUENCE regions_id_seq RESTART WITH 1"))
-            session.execute(text("ALTER SEQUENCE covid_cases_id_seq RESTART WITH 1"))
-            session.execute(text("ALTER SEQUENCE populations_id_seq RESTART WITH 1"))
-            session.commit()
-        return "Reset the id of the database successfully"
-    except Exception as e:
-        return f"Failed to reset the id of the database: {e}"
+    with Session(engine) as session:
+        # Reset the id of the tables
+        session.execute(text("ALTER SEQUENCE cities_id_seq RESTART WITH 1"))
+        session.execute(text("ALTER SEQUENCE regions_id_seq RESTART WITH 1"))
+        session.execute(text("ALTER SEQUENCE covid_cases_id_seq RESTART WITH 1"))
+        session.execute(text("ALTER SEQUENCE populations_id_seq RESTART WITH 1"))
+        session.commit()
 
 
 def clear_db():
@@ -52,18 +49,14 @@ def clear_db():
     # Create all tables
     metadata.create_all(engine)
 
-    try:
-        with Session(engine) as session:
-            # Delete all data in the tables
-            # the delete squences are important, because of the foreign key constraints
-            session.execute(covid_cases.delete())
-            session.execute(populations.delete())
-            session.execute(regions.delete())
-            session.execute(cities.delete())
-            session.commit()
-        return "Cleared the database successfully"
-    except Exception as e:
-        return f"Failed to clear the database: {e}"
+    with Session(engine) as session:
+        # Delete all data in the tables
+        # the delete squences are important, because of the foreign key constraints
+        session.execute(covid_cases.delete())
+        session.execute(populations.delete())
+        session.execute(regions.delete())
+        session.execute(cities.delete())
+        session.commit()
 
 
 def init_db():
@@ -77,18 +70,10 @@ def init_db():
     metadata.create_all(engine)
 
     # Load administrative data of Taiwan
-    try:
-        init_administrative_data(engine)
-    except Exception as e:
-        return "Failed to initialize the database with administrative"
+    init_administrative_data(engine)
 
     # Load population data of Taiwan
-    try:
-        init_population_data(engine)
-    except Exception as e:
-        return "Failed to initialize the database with population"
-
-    return "Initialized the database successfully"
+    init_population_data(engine)
 
 
 def init_administrative_data(engine):

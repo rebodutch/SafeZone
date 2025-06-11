@@ -1,5 +1,6 @@
 # tools/cli/relay/bin/time_healper.py
-import requests
+import requests # type: ignore
+
 from config.settings import TIME_SERVER_URL
 
 def get_current_time():

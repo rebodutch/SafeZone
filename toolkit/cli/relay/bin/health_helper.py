@@ -1,7 +1,7 @@
 # tools/cli/relay/bin/system_helper.py
-import redis
-import requests
-import psycopg2
+import requests # type: ignore
+import redis # type: ignore
+import psycopg2 # type: ignore
 
 from config.settings import REDIS_HOST, DB_URL, REPLICA_URL
 from config.settings import SIMULATOR_URL, INGESTOR_URL, ANALYTICS_API_URL, DASHBOARD_URL, MKDOC_URL
