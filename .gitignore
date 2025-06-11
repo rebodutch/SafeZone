@@ -2,15 +2,15 @@
 *.pyc
 __pycache__/
 
-# ingore .env file
-*.env
-*.venv
-
-# ignore .vscode
+# ignore .vscode folder
 .vscode
 
-# ingore temp docker compose volumes
-local/compose/data/
+# ignore local configuration files
+*.local*
+
+# ingore temporary directories
+temp/
 
 # ignore secrets
-*secret*/
+*secret*
+.secrets
