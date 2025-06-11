@@ -10,5 +10,6 @@ ENV PYTHONPATH=/app
 WORKDIR /app
 
 RUN chmod +x /app/main.py && ln -s /app/main.py /usr/local/bin/szcli
+RUN chmod +x /app/scripts/init.sh
 
-CMD ["bash"]
+CMD ["tail", "-f", "/dev/null"]
