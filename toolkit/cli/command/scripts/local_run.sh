@@ -7,7 +7,7 @@ IMAGE_NAME="safezone_cli_command"
 IMAGE_TAG="latest"
 INSTANCE_NAME="safezone_cli_daemon"
 # ENV variables for the daemon
-RELAY_URL="http://192.168.0.2:8000"
+RELAY_URL="http://safezone.omh.idv.tw/cli"
 RELAY_TIMEOUT=3600
 TOKEN_FILE="/app/.temp_token.json"
 # --------------------------------
