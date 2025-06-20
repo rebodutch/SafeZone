@@ -1,0 +1,77 @@
+{
+    "region": [
+        {
+            "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio=False",
+            "response_template": {
+                "data": {
+                    "start_date": "{{start_date}}",
+                    "end_date": "{{now}}",
+                    "city": "{{mock_city}}",
+                    "region": "{{mock_region}}",
+                    "aggregated_cases": "{{aggregated_cases}}"
+                },
+                "message": "Data returned successfully",
+                "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+                "success": true
+            }
+        },
+        {
+            "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio=True",
+            "response_template": {
+                "data": {
+                    "start_date": "{{start_date}}",
+                    "end_date": "{{now}}",
+                    "city": "{{mock_city}}",
+                    "region": "{{mock_region}}",
+                    "cases_population_ratio": "{{cases_population_ratio}}"
+                },
+                "message": "Data returned successfully",
+                "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+                "success": true
+            }
+        }
+    ],
+    "city": [
+        {
+            "url_template": "{{API_URL}}/cases/city?now={{now}}&interval={{interval}}&city={{mock_city}}&ratio=False",
+            "response_template": {
+                "data": {
+                    "start_date": "{{start_date}}",
+                    "end_date": "{{now}}",
+                    "city": "{{mock_city}}",
+                    "aggregated_cases": "{{aggregated_cases}}"
+                },
+                "message": "Data returned successfully",
+                "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+                "success": true
+            }
+        },
+        {
+            "url_template": "{{API_URL}}/cases/city?now={{now}}&interval={{interval}}&city={{mock_city}}&ratio=True",
+            "response_template": {
+                "data": {
+                    "start_date": "{{start_date}}",
+                    "end_date": "{{now}}",
+                    "city": "{{mock_city}}",
+                    "cases_population_ratio": "{{cases_population_ratio}}"
+                },
+                "message": "Data returned successfully",
+                "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+                "success": true
+            }
+        }
+    ],
+    "national": {
+        "url_template": "{{API_URL}}/cases/national?now={{now}}&interval={{interval}}",
+        "response_template": {
+            "data": {
+                "start_date": "{{start_date}}",
+                "end_date": "{{now}}",
+                "aggregated_cases": "{{aggregated_cases}}"
+            },
+            "message": "Data returned successfully",
+            "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+            "success": true
+        }
+    }
+}

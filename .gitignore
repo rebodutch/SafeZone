@@ -1,3 +1,16 @@
-*.csv
+# ignore python compiled files
 *.pyc
 __pycache__/
+
+# ignore .vscode folder
+.vscode
+
+# ignore local configuration files
+*.local*
+
+# ingore temporary directories
+temp/
+
+# ignore secrets
+*secret*
+.secrets

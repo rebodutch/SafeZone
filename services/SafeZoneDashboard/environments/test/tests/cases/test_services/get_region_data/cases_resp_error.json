@@ -1,0 +1,34 @@
+[
+    {
+        "test_describes": "test callback to get region data with missing end_date",
+        "url_template": "{{API_URL}}/cases/region?now={{now}}&interval={{interval}}&city={{mock_city}}&region={{mock_region}}&ratio={{ratio}}",
+        "params": {
+            "city": "台北市",
+            "interval": "14",
+            "ratio": false
+        },
+        "mock_regions": {
+            "台北市": [
+                "信義區"
+            ]
+        },
+        "expected": {
+            "response_template": {
+                "data": {
+                    "start_date": "{{start_date}}",
+                    "city": "{{mock_city}}",
+                    "aggregated_cases": "{{aggregated_cases}}"
+                },
+                "message": "Data returned successfully",
+                "detail": "Data returned successfully for dates {{start_date}} ~ {{now}}.",
+                "success": true
+            },
+            "data_template": {
+                "start_date": "{{start_date}}",
+                "end_date": "{{now}}",
+                "city": "{{mock_city}}",
+                "aggregated_cases": "{{aggregated_cases}}"
+            }
+        }
+    }
+]

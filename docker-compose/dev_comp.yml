@@ -1,0 +1,95 @@
+services:
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    volumes:
+      - ./temp/db_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - infra
+
+  cli-relay:
+    image: safezone_cli_relay:latest
+    env_file:
+      - ../.env.secret
+    environment:
+      - ENVIRONMENT=DEV
+      - DB_URL=postgresql://postgres:password@db:5432/safezone
+      - REPLICA_URL=postgresql://postgres:password@db:5432/safezone # Use the same database for simplicity
+      - REDIS_HOST=redis
+      - SIMULATOR_URL=http://covid-simulator:8000
+      - INGESTOR_URL=http://covid-ingestor:8000
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - DASHBOARD_URL=http://dashboard:8080
+      - MKDOC_URL=http://mkdocs:8000
+      - TIME_SERVER_URL=http://time-server:8000
+      - ROLE_FILE=roles.example.yml
+    ports:
+      - "8000:8000"
+    profiles:
+      - infra
+
+  cli-command:
+    image: safezone_cli_command:latest
+    env_file:
+      - ../.env.secret
+    environment:
+      - ENVIRONMENT=DEV
+      - RELAY_URL=http://cli-relay:8000
+      - RELAY_TIMEOUT=3600
+      - TOKEN_FILE=/app/.temp_token.json
+    profiles:
+      - infra
+    
+  covid-simulator:
+    image: covid_data_simulator:latest
+    env_file:
+      - ../services/CovidDataSimulator/environments/dev/.env.dev
+    environment:
+      - ENVIRONMENT=DEV
+      - INGESTOR_URL=http://covid-ingestor:8000/collect
+      - REALY_TIMEOUT=3600
+    profiles:
+      - core
+
+  covid-ingestor:
+    image: covid_data_ingestor:latest
+    env_file:
+      - ../services/CovidDataIngestor/environments/dev/.env.dev
+    environment:
+      - ENVIRONMENT=DEV
+      - DATABASE_URL=postgresql://postgres:password@db:5432/safezone
+    profiles:
+      - core
+
+  analytics-api:
+    image: safezone_analytics_api:latest
+    env_file:
+      - ../services/SafeZoneAnalyticsAPI/environments/dev/.env.dev
+    environment:
+      - ENVIRONMENT=DEV
+      - DATABASE_URL=postgresql://postgres:password@db:5432/safezone
+    profiles:
+      - core
+
+  dashboard:
+    image: safezone_dashboard:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../services/SafeZoneDashboard/environments/dev/.env.dev
+    environment:
+      - ENVIRONMENT=DEV
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - FREEZE_TIME=2023-04-22
+    profiles:
+      - ui

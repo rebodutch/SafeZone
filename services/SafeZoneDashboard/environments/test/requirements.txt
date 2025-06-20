@@ -1,0 +1,11 @@
+# app requirements
+python-dotenv==1.0.1
+dash==2.18.2
+pandas==2.2.3
+requests==2.32.3
+pydantic==2.10.4
+dash_bootstrap_components==1.6.0
+# test requirements
+pytest==8.3.3
+responses==0.25.3
+freezegun==1.5.1

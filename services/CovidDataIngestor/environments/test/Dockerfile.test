@@ -1,0 +1,20 @@
+FROM python:3.13-slim
+
+# Copy requirements file into the container
+COPY services/CovidDataIngestor/environments/test/requirements.txt .
+
+# Install dependencies specified in requirements.txt
+# Note: When running 'pip install' as root, a warning is generated 
+# because running pip as root without using a virtual environment can lead to permission issues or conflicts.
+# To suppress the warning, the '--root-user-action=ignore' option 
+# is used to indicate that this behavior is intentional and safe within the Docker context.
+RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
+
+# Copy all project files into the container
+COPY services/CovidDataIngestor/app /app
+COPY services/CovidDataIngestor/environments/test/tests /test
+COPY services/CovidDataIngestor/environments/test/db /db
+# copy .env file
+COPY services/CovidDataIngestor/environments/test/.env.test /app/.env
+
+ENV PYTHONPATH=/app
