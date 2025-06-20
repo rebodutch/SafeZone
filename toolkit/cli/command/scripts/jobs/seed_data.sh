@@ -40,5 +40,4 @@ END_DATE=$(date -d "$START_DATE + 33 days" +%Y-%m-%d)
 # 6. Run the dataflow simulation for the computed interval.
 szcli dataflow simulate "$START_DATE" --enddate="$END_DATE"
 
-
 echo "Seeding default data completed."
