@@ -1,6 +1,6 @@
 # app/config/settings.py
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 
 # load environment variables
 load_dotenv()
