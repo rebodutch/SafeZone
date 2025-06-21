@@ -11,4 +11,4 @@ COPY utils /app/utils
 ENV PYTHONPATH=/app
 WORKDIR /app
 
-CMD ["python", "main.py"]
+CMD ["python", "app.py"]

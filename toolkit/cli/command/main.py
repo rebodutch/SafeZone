@@ -33,12 +33,14 @@ def main(
 ):
     handlers = []
     if debug or logfile is not None:
+        # Set up logging handlers
         handlers.append(logging.StreamHandler(sys.stderr))
         if logfile:
             file_handler = logging.handlers.RotatingFileHandler(
                 logfile, mode="a+", maxBytes=1 * 1024 * 1024, backupCount=3, encoding="utf-8"
             )
             handlers.append(file_handler)
+      
         if not logging.getLogger().hasHandlers():
             logging.basicConfig(
                 level=logging.DEBUG,
@@ -55,14 +57,13 @@ def main(
                 if not hasattr(record, "trace_id"):
                     record.trace_id = trace_id
                 return super().format(record)
+            
         # Use SafeTraceFormatter to include trace_id in log messages
         formatter = SafeTraceFormatter("[%(trace_id)s] %(asctime)s %(levelname)s %(name)s %(message)s")
         for handler in handlers:
             handler.setFormatter(formatter)
             
         rich.print("[bold yellow]Debug mode enabled.[/bold yellow]")
-    else:
-        rich.print("[bold green]Running in normal mode.[/bold green]")
 
 
 # ---- Database Commands ----

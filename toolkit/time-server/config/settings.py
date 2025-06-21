@@ -1,5 +1,5 @@
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 
 # load environment variables
 load_dotenv()
@@ -9,7 +9,6 @@ REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 
 # logging settings
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-MAX_LOG_FILE_SIZE = int(os.getenv("MAX_LOG_FILE_SIZE", str(5 * 1024 * 1024)))
 
 # Relay API settings
 ## access the environment variables
