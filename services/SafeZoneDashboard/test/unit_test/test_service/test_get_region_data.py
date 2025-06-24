@@ -1,13 +1,13 @@
 import json
-import pytest
 import datetime
 import random
-import responses
-from jinja2 import Template
-from pydantic import ValidationError
-from collections import defaultdict
-from unittest.mock import patch
-from freezegun import freeze_time
+
+import pytest # type: ignore
+import responses # type: ignore
+from jinja2 import Template # type: ignore
+from unittest.mock import patch # type: ignore
+from freezegun import freeze_time # type: ignore
+from pydantic import ValidationError # type: ignore
 
 from services.update_cases import get_region_data
 from config.settings import API_URL
@@ -97,8 +97,9 @@ def get_case_describes(case):
 def test_update_trends(mock_load_geo, case, frozen_time):
     # mock the load_taiwan_admin function
     mock_load_geo.return_value = case["mock_regions"]
-    
-    with frozen_time("2023-06-26"):
+    mock_date = "2023-06-26"
+
+    with frozen_time(mock_date):
         # get the parameters
         city = case["params"]["city"]
         interval = case["params"]["interval"]
@@ -115,7 +116,7 @@ def test_update_trends(mock_load_geo, case, frozen_time):
             responses.add(responses.GET, url, json=mock_response, status=status_code)
 
         # call the function
-        data = get_region_data(city, interval, ratio)
+        data = get_region_data(mock_date, city, interval, ratio)
 
         # assert the data's correctness
         assert data == mock_data
@@ -129,14 +130,15 @@ def test_update_trends(mock_load_geo, case, frozen_time):
 def test_update_map_params_error(mock_load_geo, case, frozen_time):
     # mock the load_taiwan_admin function
     mock_load_geo.return_value = case["mock_regions"]
-    
+    mock_date = "2023-06-26"
+
     # get the parameters
     city = case["params"]["city"]
     interval = case["params"]["interval"]
     
     # expect the validation error beacuse the interval is not in the correct format
     with pytest.raises(ValidationError):
-        get_region_data(city, interval)
+        get_region_data(mock_date, city, interval)
 
 
 # test the update_cases function in response error scenarios
@@ -148,15 +150,16 @@ def test_update_map_params_error(mock_load_geo, case, frozen_time):
 def test_update_map_params_error(mock_load_geo, case, frozen_time):
     # mock the load_taiwan_admin function
     mock_load_geo.return_value = case["mock_regions"]
-    
-    with frozen_time("2023-06-26"):
+    mock_date = "2023-06-26"
+
+    with frozen_time(mock_date):
         # get the parameters
         city = case["params"]["city"]
         interval = case["params"]["interval"]
         ratio = case["params"]["ratio"]
         
         # mock the requests
-        mock_requests, mock_data = generate_mocks(case, interval, ratio)
+        mock_requests, _ = generate_mocks(case, interval, ratio)
         
         # simulate request by requests_mock
         for mock_request in mock_requests:
@@ -167,5 +170,4 @@ def test_update_map_params_error(mock_load_geo, case, frozen_time):
         
         # expect the validation error beacuse the response missing the end_date field 
         with pytest.raises(ValidationError):
-            get_region_data(city, interval)
-
+            get_region_data(mock_date, city, interval)

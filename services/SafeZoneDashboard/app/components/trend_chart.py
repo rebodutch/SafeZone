@@ -1,25 +1,10 @@
-from dash import html
+from dash import html # type: ignore
 from services.update_cases import get_city_data
-# test data
-# data = [
-#     {"city": "台北市", "cases": 120},
-#     {"city": "新北市", "cases": 110},
-#     {"city": "台中市", "cases": 95},
-#     {"city": "高雄市", "cases": 80},
-#     {"city": "台南市", "cases": 75},
-#     {"city": "桃園市", "cases": 65},
-#     {"city": "彰化縣", "cases": 55},
-#     {"city": "新竹市", "cases": 50},
-#     {"city": "宜蘭縣", "cases": 45},
-#     {"city": "基隆市", "cases": 40},
-# ]
-
-# max_cases = max([item["cases"] for item in data]) 
 
 
-def create_table():
+def create_table(date):
     # get the data
-    data = get_city_data("7")
+    data = get_city_data(date, "7")
     # get the max cases
     # print(type(data), data)
     max_cases = max([v for k,v in data.items()]) 
@@ -91,10 +76,10 @@ def create_table():
     return rows
 
 
-def get_trend_bar():
+def get_trend_bar(date):
     return html.Div(
         html.Table(
-            create_table(),
+            create_table(date),
             style={
                 "textAlign": "center",
                 "width": "100%",

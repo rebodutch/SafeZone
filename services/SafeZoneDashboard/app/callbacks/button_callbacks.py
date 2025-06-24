@@ -1,8 +1,9 @@
-from dash import Input, Output, State
+import logging
 
-from config.logger import get_logger
+from dash import Input, Output, State # type: ignore
 
-logger = get_logger()
+
+logger = logging.getLogger(__name__)
 
 
 def interval_button_callbacks(app):
@@ -19,10 +20,11 @@ def interval_button_callbacks(app):
             Input("btn-7-days", "n_clicks_timestamp"),
             Input("btn-14-days", "n_clicks_timestamp"),
             Input("btn-30-days", "n_clicks_timestamp"),
-        ],
-        [State("ratio-button-state", "data")],
+        ]
+        ,
+        prevent_initial_call=True,
     )
-    def update_active_button(ts1, ts2, ts3, ts4, ratio):
+    def update_active_button(ts1, ts2, ts3, ts4):
         timestamps = {
             "btn-3-days": ts1,
             "btn-7-days": ts2,
@@ -56,6 +58,7 @@ def ratio_button_callbacks(app):
             Input("btn-cases", "n_clicks_timestamp"),
             Input("btn-ratio", "n_clicks_timestamp"),
         ],
+        prevent_initial_call=True,
     )
     def update_active_button(ts1, ts2):
         timestamps = {
@@ -72,5 +75,5 @@ def ratio_button_callbacks(app):
         return [
             active_button == "btn-cases",
             active_button == "btn-ratio",
-            {"active": active_button.split("-")[1] == "ratio"},
+            {"active": active_button.split("-")[1]},
         ]

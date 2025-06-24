@@ -1,13 +1,13 @@
 import json
-import pytest
-import datetime
 import random
-import responses
+from datetime import date, timedelta
 
-from pydantic import ValidationError
+import pytest # type: ignore
+import responses # type: ignore
 from jinja2 import Template
 from unittest.mock import patch
-from freezegun import freeze_time
+from pydantic import ValidationError # type: ignore
+from freezegun import freeze_time # type: ignore
 
 from services.update_cases import get_city_data
 from config.settings import API_URL
@@ -22,23 +22,22 @@ def frozen_time():
 
     return _freeze_time
 
-
 def generate_mocks(case):
     mock_data, mock_requests = {}, []
     # generate mock request
     url_template = case["url_template"]
     response_template = case["expected"]["response_template"]
 
-    date = datetime.date.today()
+    mock_date = date.today()
     for mock_city in case["mock_cities"].keys():
         # it's should be generated before the context,
         # becasue the different render will cause the different result
         rand_cases = random.randint(0, 1000)
-        date_str = date.strftime("%Y-%m-%d")
+        date_str = mock_date.strftime("%Y-%m-%d")
         # the context for the jinja2 template
         context = {
             "now": date_str,
-            "start_date": (date - datetime.timedelta(days=7)).strftime("%Y-%m-%d"),
+            "start_date": (mock_date - timedelta(days=7)).strftime("%Y-%m-%d"),
             "mock_city": mock_city,
             "interval": 7,
             "aggregated_cases": rand_cases,
@@ -73,20 +72,21 @@ def get_case_describes(case):
 @responses.activate
 def test_update_trends(mock_load_geo, case, frozen_time):
     mock_load_geo.return_value = case["mock_cities"]
+    mock_date = "2023-06-26"
 
-    with frozen_time("2023-06-26"):
+    with frozen_time(mock_date):
         # mock the requests
         mock_requests, mock_data = generate_mocks(case)
 
         # simulate request by requests_mock
         for mock_request in mock_requests:
             url = mock_request["url"]
-            mock_response = mock_request["json"]
             status_code = mock_request["status_code"]
+            mock_response = mock_request["json"]
             responses.add(responses.GET, url, json=mock_response, status=status_code)
 
         # call the function
-        data = get_city_data("7")
+        data = get_city_data(mock_date, "7")
         # # assert the data's correctness
         assert data == mock_data
 
@@ -99,18 +99,19 @@ def test_update_trends(mock_load_geo, case, frozen_time):
 @responses.activate 
 def test_update_trends_response_error(mock_load_geo, case, frozen_time):
     mock_load_geo.return_value = case["mock_cities"]
+    mock_date = "2023-06-26"
 
-    with frozen_time("2023-06-26"):
+    with frozen_time(mock_date):
         # mock the requests
-        mock_requests, mock_data = generate_mocks(case)
+        mock_requests, _ = generate_mocks(case)
 
         # simulate request by requests_mock
         for mock_request in mock_requests:
             url = mock_request["url"]
-            mock_response = mock_request["json"]
             status_code = mock_request["status_code"]
+            mock_response = mock_request["json"]
             responses.add(responses.GET, url, json=mock_response, status=status_code)
 
         # missing the field "end_date" in the response, it should raise the validationerror
         with pytest.raises(ValidationError):
-            data = get_city_data("7")
+            _ = get_city_data(mock_date, "7")

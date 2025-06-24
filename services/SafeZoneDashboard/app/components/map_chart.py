@@ -1,46 +1,73 @@
 import json
-import plotly.graph_objects as go
-import dash_bootstrap_components as dbc
-from dash import dcc, html
-from datetime import timedelta
+from datetime import date, timedelta
 
-from services.update_cases import get_city_data
-from config.time_manager import get_now
+import plotly.graph_objects as go  # type: ignore
+import dash_bootstrap_components as dbc  # type: ignore
+from dash import dcc, html  # type: ignore
+
+
+def get_city_geodata(city):
+    # load the geojson data for the specified city
+
+    # load the city center location
+    with open("app/utils/geo_data/boundaries/accessory/city_center.json", "r") as f:
+        city_center = json.load(f)
+
+    # load the city code mapping
+    with open("app/utils/geo_data/boundaries/accessory/city_code.json", "r") as f:
+        city_code_mapping = json.load(f)
+    # load the geojson data by city code
+    city_code = city_code_mapping[city]
+    with open(
+        f"app/utils/geo_data/boundaries/regions/{city_code}_region.json",
+        "r",
+    ) as f:
+        geojson_data = json.load(f)
+    return {
+        "center": city_center[city],
+        "geojson": geojson_data,
+    }
 
 
 # risk map canvas
-def get_risk_map():
-    # get time settings
-    end_date = get_now()
-    start_date = end_date - timedelta(days=3)
-    start_date = start_date.strftime("%Y-%m-%d")
-    end_date = end_date.strftime("%Y-%m-%d")
-
-    init_fig = get_tw_risk_map()
+def get_init_map():
     # map banner
     banner = html.H4(
-        f"{start_date} ~ {end_date} 疫情風險圖 - 依病例數",
+        f" 1970-01-01 ~ 1970-01-03 疫情風險圖 - 依病例數",
         id="risk-map-title",
         className="text-white bg-primary p-2",
+    )
+    # the current risk map
+    risk_map = dcc.Graph(
+        id="risk-map",
+        figure=go.Figure(),
     )
     # store the map current layer and location
     risk_map_state = dcc.Store(
         id="risk-map-state",
-        data={"layer": "city", "interval": "3", "ratio": False, "loc": "台灣"},
-    )
-    # stroe the filters state of map in cache
-    map_cache_state = dcc.Store(
-        id="store-map-state",
-        data={"interval": "3", "ratio": False},
+        data={
+            "layer": "0",  # 0: tw risk map, 1: city risk map
+            "date": "1970-01-03", 
+            "interval": "3", # interval in days
+            "show": "cases", # cases or ratio
+            "loc": "台灣",  # current location, default is Taiwan
+        },
     )
     # the map cache
     map_cache = dcc.Store(
-        id="risk-map-store",
-        data=init_fig,
+        id="map-cache",
+        data=None,
     )
-    risk_map = dcc.Graph(
-        id="risk-map",
-        figure=init_fig,
+    # store the filters state of map in cache
+    map_cache_state = dcc.Store(
+        id="map-cache-state",
+        data={
+            "layer": "0",
+            "date": "1970-01-03",
+            "interval": "3",
+            "show": "cases",
+            "loc": "台灣",
+        },
     )
 
     return dbc.Row(
@@ -55,20 +82,17 @@ def get_risk_map():
 
 
 # risk map of whole taiwan
-def get_tw_risk_map(risk_level=None):
+def get_tw_risk_map(city_risk):
     # risk map of whole taiwan with city level risk initialized
     with open(f"app/utils/geo_data/boundaries/geo_city.json", "r") as f:
         geojson_data = json.load(f)
-    # if risk_level is None, get city data by default filter settings
-    if risk_level is None:
-        risk_level = get_city_data("3", ratio=False)
 
     return go.Figure(
         go.Choroplethmapbox(
             geojson=geojson_data,
-            locations=list(risk_level.keys()),
+            locations=list(city_risk.keys()),
             featureidkey="properties.COUNTYNAME",
-            z=list(risk_level.values()),
+            z=list(city_risk.values()),
             colorscale="Reds",
             marker_opacity=0.9,
             marker_line_width=1,
@@ -86,10 +110,13 @@ def get_tw_risk_map(risk_level=None):
 
 
 # risk map of specific city
-def get_city_risk_map(geojson_data, region_risk, center, annotation_text=None):
+def get_city_risk_map(city, region_risk):
+    # get the geojson data and center location for the specified city
+    geo_data = get_city_geodata(city)
+
     figure = go.Figure(
         go.Choroplethmapbox(
-            geojson=geojson_data,
+            geojson=geo_data["geojson"],
             locations=list(region_risk.keys()),
             featureidkey="properties.TOWNNAME",
             z=list(region_risk.values()),
@@ -102,27 +129,27 @@ def get_city_risk_map(geojson_data, region_risk, center, annotation_text=None):
             "mapbox": {
                 "style": "carto-positron",
                 "zoom": 8,
-                "center": center,
+                "center": geo_data["center"],
             },
             "margin": {"r": 0, "t": 0, "l": 0, "b": 0},
         },
     )
-    if annotation_text:
-        figure.update_layout(
-            annotations=[
-                dict(
-                    text=annotation_text,
-                    x=0.03,
-                    y=0.95,
-                    xref="paper",
-                    yref="paper",
-                    showarrow=False,
-                    font=dict(size=20, color="red"),
-                    align="center",
-                    bgcolor="rgba(255, 255, 255, 0.7)",
-                    bordercolor="gray",
-                    borderwidth=1,
-                )
-            ]
-        )
+    # add annotation to the figure
+    figure.update_layout(
+        annotations=[
+            dict(
+                text="點擊地圖任區域可返回全台地圖",
+                x=0.03,
+                y=0.95,
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                font=dict(size=20, color="red"),
+                align="center",
+                bgcolor="rgba(255, 255, 255, 0.7)",
+                bordercolor="gray",
+                borderwidth=1,
+            )
+        ]
+    )
     return figure

@@ -1,6 +1,5 @@
-from dash import dcc
-import dash_bootstrap_components as dbc
-
+from dash import dcc # type: ignore
+import dash_bootstrap_components as dbc # type: ignore
 
 # the filter buttons
 def get_filter_buttons():
@@ -31,27 +30,27 @@ def get_filter_buttons():
         size="md",
     )
 
-    interval_state_stroe = dcc.Store(
+    interval_state_store = dcc.Store(
         id="interval-button-state",
         data={"active": "3"},
     )
 
-    ratio_state_stroe = dcc.Store(
+    ratio_state_store = dcc.Store(
         id="ratio-button-state",
-        data={"active": False},
+        data={"active": "cases"},
     )
     return dbc.Row(
         [
             dbc.Col(
                 [
-                    interval_state_stroe,
+                    interval_state_store,
                     interval_button,
                 ],
                 width=8,
             ),
             dbc.Col(
                 [
-                    ratio_state_stroe,
+                    ratio_state_store,
                     ratio_button,
                 ],
                 width=4,

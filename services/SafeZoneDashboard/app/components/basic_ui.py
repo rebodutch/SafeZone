@@ -1,10 +1,12 @@
-import dash_bootstrap_components as dbc
-from dash import html, dcc
+import logging
+
+from dash import html, dcc  # type: ignore
+import dash_bootstrap_components as dbc  # type: ignore
 
 from components.button import get_filter_buttons
-from components.map_chart import get_risk_map
-from components.card import get_case_card, get_top_cities_card
+from components.map_chart import get_init_map
 
+logger = logging.getLogger(__name__)
 
 def get_header_with_navbar():
     # the header of the dashboard
@@ -49,6 +51,8 @@ def get_header_with_navbar():
         dark=True,
     )
 
+    logger.debug("Creating header and navbar for the dashboard.")
+
     return dbc.Row(
         [
             header,
@@ -58,17 +62,35 @@ def get_header_with_navbar():
     )
 
 
-def get_cards():
+def get_timer():
+
+    logger.debug("Creating global timer and system date store.")
+
     return dbc.Col(
         [
-            get_case_card(),
-            get_top_cities_card(),
+            dcc.Interval(id="global-timer", interval=5 * 60 * 1000, n_intervals=0),
+            dcc.Store(id="system-date-store", data={"system_date": "1970-01-01"}),  # default date 
+        ]
+    )
+
+
+def get_cards():
+
+    logger.debug("Creating cards for the dashboard.")
+
+    return dbc.Col(
+        [
+            dbc.Card(None, className="text-white bg-primary mb-3", id="cases-card"),
+            dbc.Card(None, className="mb-3", id="top-cities-card"),
         ],
         width=4,
     )
 
 
 def get_risk_map_section():
+
+    logger.debug("Creating risk map section with filter buttons and initial map.")
+
     return dbc.Col(
         [
             # add loading spinner to avoid the map loading delay and race condition
@@ -82,7 +104,7 @@ def get_risk_map_section():
                         ],
                         className="mb-4",
                     ),
-                    get_risk_map(),
+                    get_init_map(),
                 ],
             )
         ],

@@ -1,0 +1,4 @@
+# test dependencies for SafeZoneDashboard
+pytest==8.3.3
+responses==0.25.3
+freezegun==1.5.1

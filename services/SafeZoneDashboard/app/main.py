@@ -1,12 +1,12 @@
-import dash
-import dash_bootstrap_components as dbc
-from flask import jsonify
+import logging
+import dash # type: ignore
+import dash_bootstrap_components as dbc # type: ignore
+from flask import jsonify # type: ignore
 
+from utils.logging.baselogger import setup_logger
 from layout.dashboard_layout import get_dashboard_layout
 from callbacks.register import register_callbacks
-from config.settings import SERVER_IP, SERVER_PORT, SERVICE_NAME, SERVICE_VERSION
-from config.logger import get_logger
-
+from config.settings import SERVER_IP, SERVER_PORT, SERVICE_NAME, SERVICE_VERSION, LOG_LEVEL
 
 def create_app():
     app = dash.Dash(
@@ -26,7 +26,12 @@ def create_app():
 
 
 if __name__ == "__main__":
-    logger = get_logger()
+    setup_logger(
+        service_name=SERVICE_NAME,
+        service_version=SERVICE_VERSION,
+        log_level=LOG_LEVEL,
+    )
+    logger = logging.getLogger(__name__)
     app = create_app()
     logger.info(f"Starting {SERVICE_NAME} version {SERVICE_VERSION}.")
     app.run_server(host=SERVER_IP, port=SERVER_PORT, debug=True)
