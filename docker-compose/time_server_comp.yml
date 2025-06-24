@@ -1,0 +1,112 @@
+services:
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    volumes:
+      - ./temp/db_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - before-ui
+
+  redis:
+    container_name: redis
+    image: bitnami/redis:7.4.3-debian-12-r0
+    environment:
+      - REDIS_PASSWORD=5566
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles:
+      - before-ui
+
+  time-server:
+    container_name: time-server
+    image: safezone_time_server:latest
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5566
+      - REDIS_DB=0
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - before-ui
+
+  cli-relay:
+    image: safezone_cli_relay:latest
+    env_file:
+      - ../.secrets
+    environment:
+      - ENVIRONMENT=DEV
+      - LOG_LEVEL=DEBUG
+      - DB_URL=postgresql://postgres:password@db:5432/safezone
+      - REPLICA_URL=postgresql://postgres:password@db:5432/safezone # Use the same database for simplicity
+      - REDIS_HOST=redis
+      - SIMULATOR_URL=http://covid-simulator:8000
+      - INGESTOR_URL=http://covid-ingestor:8000
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - DASHBOARD_URL=http://dashboard:8080
+      - MKDOC_URL=http://mkdocs:8000
+      - TIME_SERVER_URL=http://time-server:8000
+      - ROLE_FILE=roles.example.yml
+    ports:
+      - "8000:8000"
+    profiles:
+      - before-ui
+    
+  # covid-simulator:
+  #   image: covid_data_simulator:latest
+  #   env_file:
+  #     - ../services/CovidDataSimulator/environments/dev/.env.dev
+  #   environment:
+  #     - ENVIRONMENT=DEV
+  #     - INGESTOR_URL=http://covid-ingestor:8000/collect
+  #     - REALY_TIMEOUT=3600
+
+
+  # covid-ingestor:
+  #   image: covid_data_ingestor:latest
+  #   env_file:
+  #     - ../services/CovidDataIngestor/environments/dev/.env.dev
+  #   environment:
+  #     - ENVIRONMENT=DEV
+  #     - DATABASE_URL=postgresql://postgres:password@db:5432/safezone
+
+
+  analytics-api:
+    image: safezone_analytics_api:latest
+    env_file:
+      - ../services/SafeZoneAnalyticsAPI/environments/dev/.env.dev
+    environment:
+      - ENVIRONMENT=DEV
+      - DATABASE_URL=postgresql://postgres:password@db:5432/safezone
+    profiles:
+      - before-ui
+
+  dashboard:
+    image: safezone_dashboard:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../services/SafeZoneDashboard/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - TIME_SERVER_URL=http://time-server:8000
+    profiles:
+      - ui
