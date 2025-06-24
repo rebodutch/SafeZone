@@ -4,11 +4,11 @@ name: local act workflow for feature branch
 # Do not use for production deployment.
 
 on:
-  push:
-    branches:
-      - feature/*
-      - refactor/*
-
+  # push:
+  #   branches:
+  #     - feature/*
+  #     - refactor/*
+  workflow_dispatch:
 jobs:
   test:
     runs-on: self-hosted
