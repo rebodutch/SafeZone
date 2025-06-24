@@ -8,8 +8,8 @@ import requests  # type: ignore
 from pathlib import Path  # type: ignore
 from pydantic import BaseModel  # type: ignore
 
-from schemas.request import SimulateModel, VerifyModel, SetTimeModel, HealthModel
-from schemas.response import APIResponse, VerifyResponseModel
+from utils.pydantic_model.request import SimulateModel, VerifyModel, SetTimeModel, HealthCheckModel
+from utils.pydantic_model.response import APIResponse, SystemDateResponse, MocktimeStatusResponse, AnalyticsAPIResponse
 from config.settings import RELAY_URL, RELAY_TIMEOUT
 from config.settings import TOKEN_FILE, CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN
 
@@ -120,13 +120,13 @@ class DataflowClient(BaseAuthClient):
             path="dataflow/verify",
             params=kwargs,
             request_model=VerifyModel,
-            response_model=VerifyResponseModel,
+            response_model=AnalyticsAPIResponse,
         )
 
 
 class TimeClient(BaseAuthClient):
     def now(self):
-        return self.auth_request(method="GET", path="system/time/now")
+        return self.auth_request(method="GET", path="system/time/now", response_model=SystemDateResponse)
 
     def set(self, **kwargs):
         return self.auth_request(
@@ -137,7 +137,7 @@ class TimeClient(BaseAuthClient):
         )
 
     def get_status(self):
-        return self.auth_request(method="GET", path="system/time/status")
+        return self.auth_request(method="GET", path="system/time/status", response_model=MocktimeStatusResponse)
 
 
 class HealthClient(BaseAuthClient):
@@ -146,7 +146,7 @@ class HealthClient(BaseAuthClient):
             method="GET",
             path="system/health",
             params=kwargs,
-            request_model=HealthModel,
+            request_model=HealthCheckModel,
         )
 
 

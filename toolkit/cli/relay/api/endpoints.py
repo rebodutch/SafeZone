@@ -1,6 +1,5 @@
 # tools/relay/api/endpoint.py
 import logging
-from datetime import datetime
 
 # third party library
 # fastapi is a web framework for building APIs with Python.
@@ -13,10 +12,13 @@ from google.auth.transport import requests as grequests  # type: ignore
 
 # local library
 import bin.db_helper as db_helper
+import bin.time_helper as time_helper
 import bin.health_helper as health_helper
-import bin.service_caller as service_caller
-from schemas.request import SimulateModel
-from schemas.response import APIResponse, VerifyResponseModel, VerifyDataModel
+import bin.service_helper as service_helper
+from utils.pydantic_model.request import SimulateModel, SetTimeModel
+from utils.pydantic_model.request import VerifyModel, HealthCheckModel
+from utils.pydantic_model.response import APIResponse, AnalyticsAPIResponse
+from utils.pydantic_model.response import SystemDateResponse, MocktimeStatusResponse
 from config.settings import CLIENT_ID, ROLE_MAP
 
 router = APIRouter()
@@ -34,23 +36,23 @@ def get_role(credentials: HTTPAuthorizationCredentials = Depends(security)):
         )
     try:
         idinfo = id_token.verify_oauth2_token(token, grequests.Request(), CLIENT_ID)
-        
+
         # Check if the token is issued by Google
         if idinfo.get("iss") != "https://accounts.google.com":
             raise HTTPException(status_code=401, detail="Invalid issuer")
-        
+
         # Check if the email is verified
         if not idinfo.get("email_verified"):
             raise HTTPException(status_code=403, detail="Email not verified")
-        
+
         # Check if the email is in the allowed list
         user_email = idinfo.get("email")
-        
+
         logger.debug(f"Logging user email: {user_email}")
-        
+
         if user_email not in ROLE_MAP:
             raise HTTPException(status_code=403, detail="Email not allowed")
-        
+
         # Map the email to a role and return it
         return ROLE_MAP[user_email]
     except Exception as e:
@@ -82,22 +84,26 @@ async def simulate(
 
         data = payload.model_dump()
 
-        service_caller.simulate(date=data["date"], end_date=data["end_date"])
-
-        return APIResponse(
-            success=True, message="Dataflow/simulate execute successfully."
+        response_json = service_helper.simulate(
+            date=data["date"], end_date=data["end_date"]
         )
+
+        return APIResponse(**response_json)
 
     except Exception as e:
         logger.error(f"Dataflow/simulate execute failed: {str(e)}")
         return APIResponse(
             success=False,
             message="Dataflow/simulate execute failed.",
-            errors={"detail": str(e)},
+            errors={
+                "field": "Unknown",
+                "summary": "Dataflow/simulate execute failed.",
+                "detail": str(e),
+            },
         )
 
 
-@router.get("/dataflow/verify", response_model=VerifyResponseModel)
+@router.get("/dataflow/verify", response_model=AnalyticsAPIResponse)
 async def verify(
     date: str,
     interval: int = 1,
@@ -109,66 +115,145 @@ async def verify(
     whitelist_check(role, ["admin", "user"])
     try:
         logger.debug("Received request to dataflow/verify model.")
-        # Validate the parameters
-        response = service_caller.verify(
+
+        # Validate the parameters using Pydantic model
+        _ = VerifyModel(
             date=date,
             interval=interval,
             city=city,
             region=region,
             ratio=ratio,
         )
-        logger.debug(f"Response from analytics api: {response}")
-        resp_data = response["data"]
-
-        return VerifyResponseModel(
-            success=True,
-            message="Dataflow/verify execute successfully.",
-            data=VerifyDataModel(
-                start_date=resp_data["start_date"],
-                end_date=resp_data["end_date"],
-                city=resp_data.get("city"),
-                region=resp_data.get("region"),
-                aggregated_cases=resp_data.get("aggregated_cases"),
-                cases_population_ratio=resp_data.get("cases_population_ratio"),
-            ),
+        response_json = service_helper.verify(
+            date=date,
+            interval=interval,
+            city=city,
+            region=region,
+            ratio=ratio,
         )
+        return AnalyticsAPIResponse(**response_json)
 
     except Exception as e:
         logger.error(f"Dataflow/verify execute failed: {str(e)}")
-        return APIResponse(
+        return AnalyticsAPIResponse(
             success=False,
             message="Dataflow/verify execute failed.",
-            errors={"detail": str(e)},
+            errors={
+                "field": "Unknown",
+                "summary": "Dataflow/verify execute failed.",
+                "detail": str(e),
+            },
         )
 
 
 # ---- System Request ----
 @router.get("/system/health", response_model=APIResponse)
 async def get_health(
+    target: str = None,
+    all: bool = False,
     role=Depends(get_role),
 ):
     whitelist_check(role, ["admin", "user"])
+    try:
+        logger.debug("Received request to system/health model.")
+
+        # Validate the parameters using Pydantic model
+        _ = HealthCheckModel(target=target, all=all)
+
+        response_json = health_helper.get_health(target=target, all=all)
+
+        return APIResponse(**response_json)
+    except Exception as e:
+        logger.error(f"System/health execute failed: {str(e)}")
+        return APIResponse(
+            success=False,
+            message="System/health execute failed.",
+            errors={
+                "field": "Unknown",
+                "summary": "System/health execute failed.",
+                "detail": str(e),
+            },
+        )
 
 
-@router.post("/time/set", response_model=APIResponse)
+@router.post("/system/time/set", response_model=APIResponse)
 async def set_time(
+    payload: SetTimeModel,
     role=Depends(get_role),
 ):
     whitelist_check(role, ["admin"])
+    try:
+        logger.debug("Received request to time/set model.")
+
+        data = payload.model_dump()
+
+        response_json = time_helper.set_mock_config(**data)
+
+        return APIResponse(**response_json)
+
+    except Exception as e:
+        logger.error(f"Time/set execute failed: {str(e)}")
+        return APIResponse(
+            success=False,
+            message="Time/set execute failed.",
+            errors={
+                "field": "Unknown",
+                "summary": "Time/set execute failed.",
+                "detail": str(e),
+            },
+        )
 
 
-@router.get("/time/now", response_model=APIResponse)
+@router.get("/system/time/now", response_model=SystemDateResponse)
 async def get_now(
     role=Depends(get_role),
 ):
     whitelist_check(role, ["admin", "user"])
+    try:
+        logger.debug("Received request to time/now model.")
+
+        response_json = time_helper.get_system_date()
+
+        return SystemDateResponse(**response_json)
+
+    except Exception as e:
+        logger.error(f"Time/now execute failed: {str(e)}")
+        return SystemDateResponse(
+            success=False,
+            message="Time/now execute failed.",
+            errors={
+                "field": "Unknown",
+                "summary": "Time/now execute failed.",
+                "detail": str(e),
+            },
+        )
 
 
-@router.get("/time/status", response_model=APIResponse)
-async def get_now(
+@router.get("/system/time/status", response_model=MocktimeStatusResponse)
+async def get_status(
     role=Depends(get_role),
 ):
     whitelist_check(role, ["admin", "user"])
+    try:
+        logger.debug("Received request to time/status model.")
+
+        response_json = time_helper.get_mock_config()
+
+        logger.debug(f"Mocktime status response: {response_json}")
+
+        return MocktimeStatusResponse(**response_json)
+
+    except Exception as e:
+        logger.error(f"Time/status execute failed: {str(e)}")
+        return MocktimeStatusResponse(
+            success=False,
+            message="Time/status execute failed.",
+            errors={
+                "field": "Unknown",
+                "summary": "Time/status execute failed.",
+                "detail": str(e),
+            },
+        )
 
 
 # ---- DB Request ----
@@ -186,11 +271,15 @@ async def db_init(
 
     except Exception as e:
         logger.error(f"Database initialization failed: {str(e)}")
-        
+
         return APIResponse(
             success=False,
             message="Database initialization failed.",
-            errors={"detail": str(e)},
+            errors={
+                "field": "Unknown",
+                "summary": "Database initialization failed.",
+                "detail": str(e),
+            },
         )
 
 
@@ -203,14 +292,18 @@ async def db_clear(
         logger.debug("Received request to db/clear model.")
 
         db_helper.clear_db()
-        
+
         return APIResponse(success=True, message="Database cleared successfully.")
 
     except Exception as e:
         logger.error(f"Database clearing failed: {str(e)}")
-        
+
         return APIResponse(
             success=False,
             message="Database clearing failed.",
-            errors={"detail": str(e)},
+            errors={
+                "field": "Unknown",
+                "summary": "Database clearing failed.",
+                "detail": str(e),
+            },
         )

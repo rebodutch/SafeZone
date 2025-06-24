@@ -4,7 +4,7 @@ COPY toolkit/cli/command/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
 COPY toolkit/cli/command /app
-COPY toolkit/cli/schemas /app/schemas
+COPY utils /app/utils
 
 ENV PYTHONPATH=/app
 WORKDIR /app
