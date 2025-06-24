@@ -1,12 +1,13 @@
 FROM python:3.13-slim
 
-COPY requirements.txt .
+COPY toolkit/time-server/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
-COPY . /app
+COPY toolkit/time-server /app
+COPY utils /app/utils
 
 ENV PYTHONPATH=/app
 WORKDIR /app
 
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]
