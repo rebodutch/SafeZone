@@ -1,20 +1,25 @@
 # app/api/endpoints.py
+import logging
 from datetime import timedelta
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
 
-from api.schemas import (
-    APIResponse,
+from fastapi import APIRouter, Depends, Request  # type: ignore
+
+from utils.pydantic_model.request import (
     RegionParameters,
     CityParameters,
     NationalParameters,
 )
-from config.logger import get_logger
+from utils.pydantic_model.response import (
+    AnalyticsAPIData,
+    AnalyticsAPIResponse,
+    HealthResponse,
+)
 from pipeline.orchestrator import handle_query_request
+from config.cache import redis_cache  # decorator for caching
 
 
 router = APIRouter()
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/health")
@@ -22,18 +27,24 @@ async def health_check():
     """
     Health check endpoint to verify if the API is running.
     """
-    return JSONResponse(
-        content={"status": "healthy"},
-        status_code=200,
+    return HealthResponse(
+        success=True,
+        message="Safezone Analytics API is running",
+        detail="The API is operational and ready to handle requests.",
     )
 
 
-@router.get("/cases/region", response_model=APIResponse)
-async def process_data(params: RegionParameters = Depends()):
+@router.get("/cases/region", response_model=AnalyticsAPIResponse)
+@redis_cache(endpoint="cases_region", ttl=86400)  # Cache for 1 day
+async def process_data(request: Request, params: RegionParameters = Depends()):
+    """
+    Endpoint to process region-level data requests.
+    """
     end_date = params.now
     start_date = end_date - timedelta(days=int(params.interval) - 1)
 
     query_params = {
+        # Parameters for querying data
         "start_date": start_date,
         "end_date": end_date,
         "city": params.city,
@@ -44,29 +55,26 @@ async def process_data(params: RegionParameters = Depends()):
         f"Received region-level request to query data with params {query_params}."
     )
 
-    query_result = handle_query_request(query_params)
+    query_result = handle_query_request(request, query_params)
 
     logger.debug(f"Query region-level result: {query_result}")
 
-    response = APIResponse(
+    return AnalyticsAPIResponse(
         success=True,
         message="Data returned successfully",
         detail=f"Data returned successfully for dates {query_result["start_date"]} ~ {query_result["end_date"]}.",
-        data=query_result,
-    )
-
-    return JSONResponse(
-        content=response.model_dump(exclude_none=True),
-        status_code=200,
+        data=AnalyticsAPIData(**query_result),
     )
 
 
-@router.get("/cases/city", response_model=APIResponse)
-async def process_data(params: CityParameters = Depends()):
+@router.get("/cases/city", response_model=AnalyticsAPIResponse)
+@redis_cache(endpoint="cases_city", ttl=86400)  # Cache for 1 day
+async def process_data(request: Request, params: CityParameters = Depends()):
     end_date = params.now
     start_date = end_date - timedelta(days=int(params.interval) - 1)
 
     query_params = {
+        # Parameters for querying data
         "start_date": start_date,
         "end_date": end_date,
         "city": params.city,
@@ -77,46 +85,41 @@ async def process_data(params: CityParameters = Depends()):
         f"Received city-level request to query data with params {query_params}."
     )
 
-    query_result = handle_query_request(query_params)
+    query_result = handle_query_request(request, query_params)
 
     logger.debug(f"Query city-level result: {query_result}")
 
-    response = APIResponse(
+    return AnalyticsAPIResponse(
         success=True,
         message="Data returned successfully",
-        detail=f"Data returned successfully for dates {query_result["start_date"]} ~ {query_result["end_date"]}.",
-        data=query_result,
-    )
-
-    return JSONResponse(
-        content=response.model_dump(exclude_none=True),
-        status_code=200,
+        detail=f"Data returned successfully for dates {query_result['start_date']} ~ {query_result['end_date']}.",
+        data=AnalyticsAPIData(**query_result),
     )
 
 
-@router.get("/cases/national", response_model=APIResponse)
-async def process_data(params: NationalParameters = Depends()):
+@router.get("/cases/national", response_model=AnalyticsAPIResponse)
+@redis_cache(endpoint="cases_national", ttl=86400)  # Cache for 1 day
+async def process_data(request: Request, params: NationalParameters = Depends()):
     end_date = params.now
     start_date = end_date - timedelta(days=int(params.interval) - 1)
 
-    query_params = {"start_date": start_date, "end_date": end_date}
+    query_params = {
+        # Parameters for querying data
+        "start_date": start_date,
+        "end_date": end_date,
+    }
 
     logger.debug(
         f"Received national-level request to query data with params {query_params}."
     )
 
-    query_result = handle_query_request(query_params)
+    query_result = handle_query_request(request, query_params)
 
     logger.debug(f"Query national-level result: {query_result}")
 
-    response = APIResponse(
+    return AnalyticsAPIResponse(
         success=True,
         message="Data returned successfully",
-        detail=f"Data returned successfully for dates {query_result["start_date"]} ~ {query_result["end_date"]}.",
-        data=query_result,
-    )
-
-    return JSONResponse(
-        content=response.model_dump(exclude_none=True),
-        status_code=200,
+        detail=f"Data returned successfully for dates {query_result['start_date']} ~ {query_result['end_date']}.",
+        data=AnalyticsAPIData(**query_result),
     )

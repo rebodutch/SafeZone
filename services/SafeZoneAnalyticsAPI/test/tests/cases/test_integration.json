@@ -65,9 +65,8 @@
         "success": false,
         "message": "Invalid city name.",
         "errors": {
-          "fields": [
-            "city"
-          ],
+          "field": "city",
+          "summary": "Invalid city name",
           "detail": "The city '上海市' is not a valid Taiwan city."
         }
       }
@@ -88,9 +87,8 @@
         "success": false,
         "message": "Invalid region name.",
         "errors": {
-          "fields": [
-            "city", "region"
-          ],
+          "field": "region",
+          "summary": "Invalid region name",
           "detail": "The region '左營區' does not belong to the city '台北市'."
         }
       }
@@ -158,9 +156,8 @@
         "success": false,
         "message": "Invalid city name.",
         "errors": {
-          "fields": [
-            "city"
-          ],
+          "field": "city",
+          "summary": "Invalid city name",
           "detail": "The city '上海市' is not a valid Taiwan city."
         }
       }

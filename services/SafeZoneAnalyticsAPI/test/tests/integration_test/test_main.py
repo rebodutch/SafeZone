@@ -1,30 +1,32 @@
 import json
-import pytest
 import csv
+import logging
 from datetime import datetime
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select, and_
-from sqlalchemy.orm import Session
+
+import pytest # type: ignore
+from fastapi.testclient import TestClient # type: ignore
+from sqlalchemy import create_engine, select, and_ # type: ignore
+from sqlalchemy.orm import Session # type: ignore
 
 from utils.db.schema import cities, regions, covid_cases
 from config.settings import DB_URL
-from config.logger import get_logger
-from main import app
+from main import create_app
 
 # Fixtures
 @pytest.fixture(scope="module")
 def client():
-    return TestClient(app)
+    app = create_app()
+    with TestClient(app) as c:
+        yield c
 
 @pytest.fixture(scope="module")
 def logger():
-    return get_logger()
+    return logging.getLogger("test_integration_service")
 
 def init_db():
     with open("/data/test_data.csv", encoding="utf-8") as f:
         init_data = csv.DictReader(f)
         # Skip the header   
-
         engine = create_engine(DB_URL)
         with Session(engine) as session:
             for row in init_data:
@@ -56,6 +58,7 @@ def init_db():
                 )
                 session.execute(insert_stmt)
             session.commit()
+        engine.dispose()  # Ensure the engine is disposed after use
 
 # init database
 init_db()
@@ -72,5 +75,17 @@ def get_case_describes(case):
 def test_data_product(case, client, logger):
     response = client.get(case["endpoint"], params=case["params"])
     assert response.status_code == case["expected"]["status_code"]
-    assert response.json() == case["expected"]["response"]
-  
+
+    # remove timestamp from response for comparison
+    response_body = response.json()
+    if "timestamp" in response_body:
+        del response_body["timestamp"]
+
+    # remove items if value is None
+    if "data" in response_body:
+        # remove items with None values from data
+        response_body["data"] = {k: v for k, v in response_body["data"].items() if v is not None}
+    response_body = {k: v for k, v in response_body.items() if v is not None}
+    print(f"response_body: {response_body}")
+
+    assert response_body == case["expected"]["response"]

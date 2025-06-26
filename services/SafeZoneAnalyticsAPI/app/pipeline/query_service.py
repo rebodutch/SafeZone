@@ -1,83 +1,31 @@
-from datetime import datetime
+import logging
 
-from sqlalchemy import create_engine, select, func
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, select, func  # type: ignore
+from sqlalchemy.orm import sessionmaker  # type: ignore
 
-from utils.db.orm import City, Region
-from utils.db.schema import populations, covid_cases
+from utils.db.schema import covid_cases
 from exceptions.custom import InvalidTaiwanCityException, InvalidTaiwanRegionException
 from config.settings import DB_URL
-from config.logger import get_logger
 
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
-# caches
-# geo_cache stores city-region mapping in the format:
-# city -> (city_id, {region_name -> region_id})
-geo_cache = {}
-# populations_cache stores population data in the format:
-# city_id -> {region_id -> population}
-populations_cache = {}
+RATIO_FACTOR = 10000  # used to calculate cases to population ratio
 
 
-def load_city_region_cache():
-    engine = create_engine(DB_URL)
-    with sessionmaker(bind=engine)() as session:
-        geo_cache.clear()
-
-        results = (
-            session.query(City, Region)
-            .outerjoin(Region, Region.city_id == City.id)
-            .all()
-        )
-        for city, region in results:
-            if city.name not in geo_cache:
-                geo_cache[city.name] = (city.id, {})
-            if region:
-                geo_cache[city.name][1][region.name] = region.id
-    logger.debug("City-region cache loaded successfully.")
-
-
-def load_populations_cache():
-    engine = create_engine(DB_URL)
-    with sessionmaker(bind=engine)() as session:
-        populations_cache.clear()
-        select_stmt = select(
-            populations.c.city_id, populations.c.region_id, populations.c.population
-        )
-        for city_id, region_id, population in session.execute(select_stmt):
-            # print(f"city_id: {city_id}, region_id: {region_id}, population: {population}")
-            if city_id not in populations_cache:
-                populations_cache[city_id] = {}
-            populations_cache[city_id][region_id] = population
-    logger.debug("population cache loaded successfully.")
-
-
-def query_population(city_id, region_id=None):
-    if region_id:
-        return populations_cache[city_id][region_id]
-    aggregated_population = 0
-    for region_id, population in populations_cache[city_id].items():
-        aggregated_population += population
-    return aggregated_population
-
-
-def query_cases(**params):
+def query_cases(db_session, geo_cache, populations_cache, params):
     if "city" in params and "region" in params:
-        result = query_cases_by_region(**params)
+        result = query_cases_by_region(db_session, geo_cache, populations_cache, params)
     elif "city" in params:
-        result = query_cases_by_city(**params)
+        result = query_cases_by_city(db_session, geo_cache, populations_cache, params)
     else:
-        result = query_cases_national(**params)
-
+        result = query_cases_national(db_session, params)
     return result
 
 
-def query_cases_by_region(**params):
+def query_cases_by_region(Session, geo_cache, populations_cache, params):
     logger.debug(f"Query region cases with {params}.")
 
-    engine = create_engine(DB_URL)
-    with sessionmaker(bind=engine)() as session:
+    with Session() as session:
         # check if city and region are valid
         if params["city"] not in geo_cache:
             raise InvalidTaiwanCityException(params["city"])
@@ -101,8 +49,8 @@ def query_cases_by_region(**params):
 
     if "ratio" in params and params["ratio"]:
         # calculate cases to population ratio
-        population = query_population(city_id, region_id)
-        cases = round(cases * 10000 / population, 5)
+        population = populations_cache[city_id][region_id]
+        cases = round(cases * RATIO_FACTOR / population, 5)
 
         return {
             "start_date": params["start_date"].strftime("%Y-%m-%d"),
@@ -121,11 +69,10 @@ def query_cases_by_region(**params):
         }
 
 
-def query_cases_by_city(**params):
+def query_cases_by_city(Session, geo_cache, populations_cache, params):
     logger.debug(f"Query city case with {params}.")
 
-    engine = create_engine(DB_URL)
-    with sessionmaker(bind=engine)() as session:
+    with Session() as session:
         # check if city is valid
         if params["city"] not in geo_cache:
             raise InvalidTaiwanCityException(params["city"])
@@ -143,9 +90,12 @@ def query_cases_by_city(**params):
     logger.debug(f"Query city cases successful with {params}.")
 
     if "ratio" in params and params["ratio"]:
+        city_populations = 0
+        for _, population in populations_cache[city_id].items():
+            city_population += population
         # calculate cases to population ratio
-        population = query_population(city_id)
-        cases = round(cases * 10000 / population, 5)
+        population = city_populations
+        cases = round(cases * RATIO_FACTOR / population, 5)
 
         return {
             "start_date": params["start_date"].strftime("%Y-%m-%d"),
@@ -163,11 +113,10 @@ def query_cases_by_city(**params):
         }
 
 
-def query_cases_national(**params):
+def query_cases_national(Session, params):
     logger.debug(f"Querying national cases with {params}.")
 
-    engine = create_engine(DB_URL)
-    with sessionmaker(bind=engine)() as session:
+    with Session() as session:
         #  query cases for the whole country
         query = select(func.sum(covid_cases.c.cases).label("total_cases")).where(
             covid_cases.c.date >= params["start_date"],
@@ -177,7 +126,7 @@ def query_cases_national(**params):
         cases = cases if cases else 0
 
     logger.debug(f"Query national cases successful with {params}.")
-    
+
     return {
         "start_date": params["start_date"].strftime("%Y-%m-%d"),
         "end_date": params["end_date"].strftime("%Y-%m-%d"),

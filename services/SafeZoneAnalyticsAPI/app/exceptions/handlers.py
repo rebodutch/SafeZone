@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from exceptions.custom import InvalidTaiwanCityException, InvalidTaiwanRegionException
-from config.logger import get_logger
-from api.schemas import APIResponse
+import logging
 
-logger = get_logger()
+from fastapi import FastAPI, Request  # type: ignore
+from fastapi.responses import JSONResponse  # type: ignore
+
+from utils.pydantic_model.response import APIResponse, ErrorModel
+from exceptions.custom import InvalidTaiwanCityException, InvalidTaiwanRegionException
+
+logger = logging.getLogger(__name__)
 
 
 def invalid_taiwan_city_handler(request: Request, exc: InvalidTaiwanCityException):
@@ -13,7 +15,11 @@ def invalid_taiwan_city_handler(request: Request, exc: InvalidTaiwanCityExceptio
     response = APIResponse(
         success=False,
         message="Invalid city name.",
-        errors={"fields": ["city"], "detail": str(exc)},
+        errors=ErrorModel(
+            field="city",
+            summary="Invalid city name",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
@@ -28,7 +34,11 @@ def invalid_taiwan_region_handler(request: Request, exc: InvalidTaiwanRegionExce
     response = APIResponse(
         success=False,
         message="Invalid region name.",
-        errors={"fields": ["city", "region"], "detail": str(exc)},
+        errors=ErrorModel(
+            field="region",
+            summary="Invalid region name",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
@@ -43,7 +53,11 @@ def global_exception_handler(request: Request, exc: Exception):
     response = APIResponse(
         success=False,
         message="Internal server error.",
-        errors={"detail": "An unexpected error occurred. Please contact support."},
+        errors=ErrorModel(
+            field="unknown",
+            summary="Unexpected error occurred during processing.",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
