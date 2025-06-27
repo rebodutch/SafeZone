@@ -49,4 +49,4 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     logger.info(f"Starting {SERVICE_NAME} version {SERVICE_VERSION}")
-    uvicorn.run(app, host=SERVER_IP, port=SERVER_PORT, reload=True)
+    uvicorn.run("main:app", host=SERVER_IP, port=SERVER_PORT, reload=True)

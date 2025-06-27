@@ -11,10 +11,10 @@ from sqlalchemy.orm import Session, sessionmaker  # type: ignore
 # from sqlalchemy import inspect, text
 
 from utils.db.schema import covid_cases, cities, regions
-from pipeline.query_service import query_cases
-from exceptions.custom import InvalidTaiwanRegionException, InvalidTaiwanCityException
-from config.settings import DB_URL
-from config.cache import get_city_region_cache, get_populations_cache
+from pipeline.query_service import query_cases # type: ignore
+from exceptions.custom import InvalidTaiwanRegionException, InvalidTaiwanCityException # type: ignore
+from config.settings import DB_URL # type: ignore
+from config.cache import get_city_region_cache, get_populations_cache # type: ignore
 
 
 @pytest.fixture(scope="module")

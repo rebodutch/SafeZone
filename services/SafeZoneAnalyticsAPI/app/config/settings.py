@@ -20,4 +20,4 @@ SERVICE_VERSION = os.getenv("SERVICE_VERSION", "0.0.0")
 SERVER_IP = os.getenv("Server_IP", "0.0.0.0")
 SERVER_PORT = int(os.getenv("Server_PORT", "8000"))
 # Logging settings
-LOG_LEVEL = os.getenv("LOGGING_LEVEL", "DEBUG")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")

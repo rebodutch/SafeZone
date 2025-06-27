@@ -4,11 +4,11 @@ import hashlib
 import functools
 
 import redis.asyncio as aioredis  # type: ignore
-from fastapi.responses import JSONResponse  # type: ignore
 from sqlalchemy import select  # type: ignore
 
 from utils.db.orm import City, Region
 from utils.db.schema import populations
+from utils.pydantic_model.response import AnalyticsAPIResponse
 from config.settings import REDIS_HOST, REDIS_PORT, REDIS_DB, REDIS_PASSWORD
 
 
@@ -59,17 +59,21 @@ def redis_cache(endpoint, ttl=86400):
                 return await func(*args, **kwargs)
 
             cache_key = generate_cache_key(endpoint, params)
+            logger.debug(f"Generated cache key: {cache_key}")
             cached = await redis_client.get(cache_key)
             if cached:
                 logger.debug(f"Cache hit: {cache_key}")
-                return JSONResponse(content=json.loads(cached))
+                return AnalyticsAPIResponse.model_validate_json(cached)
 
             # if cache miss, call the function and store the result in cache
             logger.debug(f"Cache miss: {cache_key}")
             resp = await func(*args, **kwargs)
             # resp is an instance of AnalyticsAPIResponse, it can be serialized to JSON
             # and can be return as a JSONResponse content
-            await redis_client.setex(cache_key, ttl, resp.body)
+            if getattr(resp, "success", True) and isinstance(resp, AnalyticsAPIResponse):
+                await redis_client.setex(
+                    cache_key, ttl, resp.model_dump_json(exclude="timestamp")
+                )
             return resp
 
         return wrapper

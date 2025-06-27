@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient # type: ignore
 from sqlalchemy import create_engine, select, and_ # type: ignore
 from sqlalchemy.orm import Session # type: ignore
 
-from utils.db.schema import cities, regions, covid_cases
-from config.settings import DB_URL
-from main import create_app
+from utils.db.schema import cities, regions, covid_cases # type: ignore
+from config.settings import DB_URL # type: ignore
+from main import create_app # type: ignore
 
 # Fixtures
 @pytest.fixture(scope="module")

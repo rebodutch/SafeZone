@@ -90,12 +90,10 @@ def query_cases_by_city(Session, geo_cache, populations_cache, params):
     logger.debug(f"Query city cases successful with {params}.")
 
     if "ratio" in params and params["ratio"]:
-        city_populations = 0
+        city_population = 0
         for _, population in populations_cache[city_id].items():
             city_population += population
-        # calculate cases to population ratio
-        population = city_populations
-        cases = round(cases * RATIO_FACTOR / population, 5)
+        cases = round(cases * RATIO_FACTOR / city_population, 5) if city_population > 0 else 0
 
         return {
             "start_date": params["start_date"].strftime("%Y-%m-%d"),
