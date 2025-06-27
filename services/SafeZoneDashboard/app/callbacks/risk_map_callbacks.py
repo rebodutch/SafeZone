@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime, timedelta
 
 import plotly.graph_objects as go  # type: ignore
@@ -38,6 +39,8 @@ def risk_title_callbacks(app):
 
         return f"{start_date} ~ {end_date} 疫情風險圖 - {ratio_str}"
 
+
+last_click_data = None
 
 def risk_map_callbacks(app):
     @app.callback(
@@ -81,14 +84,19 @@ def risk_map_callbacks(app):
         }
 
         if click_map:
-            if update_state["layer"] == "0":
-                # if the map is a whole tw risk map, change it to city risk map
-                update_state["layer"] = "1"
-                update_state["loc"] = click_map["points"][0]["location"]
-            else:
-                # if the map is a city risk map, change it to whole tw risk map
-                update_state["layer"] = "0"
-                update_state["loc"] = "台灣"
+            global last_click_data
+            # if the click data is same as the last click data, do not update the map
+            if click_map != last_click_data:
+                logger.debug(f"Click data is changed: {click_map}")
+                if update_state["layer"] == "0":
+                    # if the map is a whole tw risk map, change it to city risk map
+                    update_state["layer"] = "1"
+                    update_state["loc"] = click_map["points"][0]["location"]
+                elif update_state["layer"] == "1":
+                    # if the map is a city risk map, change it to whole tw risk map
+                    update_state["layer"] = "0"
+                    update_state["loc"] = "台灣"
+            last_click_data = click_map
         update_state["date"] = date_data["system_date"]
         update_state["interval"] = interval["active"]
         update_state["show"] = ratio["active"]
@@ -97,7 +105,7 @@ def risk_map_callbacks(app):
 
         if update_state == map_state:
             # if the map state is the same as the cache state return the cached map
-            logger.debug("update map with no changes, return cached map")
+            logger.info("update map with no changes, return cached map")
             return [
                 dash.no_update,
                 dash.no_update,
@@ -106,7 +114,7 @@ def risk_map_callbacks(app):
             ]
         elif update_state == cache_state:
             # if the map state is the same as the cache state return the cached map
-            logger.debug("update map with no changes, return cached map")
+            logger.info("update map is the same as cache state, return cached map")
             return [
                 map_cache,
                 cache_state,
@@ -115,9 +123,10 @@ def risk_map_callbacks(app):
             ]
         else:
             # if the map state is not the same as the cache state, update the map
-            logger.debug("update map with changes")
+            logger.info("update map with changes")
+            next_map = update_map(update_state)
             return [
-                update_map(update_state),
+                next_map,
                 update_state,
                 risk_map,
                 map_state,

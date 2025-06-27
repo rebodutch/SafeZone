@@ -1,5 +1,4 @@
 import json
-from datetime import date, timedelta
 
 import plotly.graph_objects as go  # type: ignore
 import dash_bootstrap_components as dbc  # type: ignore
@@ -102,9 +101,10 @@ def get_tw_risk_map(city_risk):
             "mapbox": {
                 "style": "carto-positron",
                 "zoom": 6.3,
-                "center": {"lat": 23.5525, "lon": 120.5855},
+                "center": {"lat": 23.5525, "lon": 120.5855},  
             },
             "margin": {"r": 0, "t": 0, "l": 0, "b": 0},
+            "uirevision": "tw",
         },
     )
 
@@ -132,6 +132,7 @@ def get_city_risk_map(city, region_risk):
                 "center": geo_data["center"],
             },
             "margin": {"r": 0, "t": 0, "l": 0, "b": 0},
+            "uirevision": city,
         },
     )
     # add annotation to the figure

@@ -15,5 +15,5 @@ SERVICE_VERSION = os.getenv("SERVICE_VERSION", "1.0.0")
 SERVER_IP = os.getenv("SERVER_IP", "0.0.0.0")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8080"))
 # Logging settings
-LOG_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     
