@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: safezone
     volumes:
-      - ./temp/db_volume:/var/lib/postgresql/data
+      - ../temp/db_volume:/var/lib/postgresql/data # the database volume already initialized for testing
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
@@ -50,48 +50,29 @@ services:
   cli-relay:
     image: safezone_cli_relay:latest
     env_file:
-      - ../.secrets
+      - ../../.secrets
     environment:
       - ENVIRONMENT=DEV
       - LOG_LEVEL=DEBUG
       - DB_URL=postgresql://postgres:password@db:5432/safezone
       - REPLICA_URL=postgresql://postgres:password@db:5432/safezone # Use the same database for simplicity
       - REDIS_HOST=redis
-      - SIMULATOR_URL=http://covid-simulator:8000
-      - INGESTOR_URL=http://covid-ingestor:8000
+      - SIMULATOR_URL=http://covid-simulator:8000 # can "not" working in this docker-compose test
+      - INGESTOR_URL=http://covid-ingestor:8000 # can "not" working in this docker-compose test
       - ANALYTICS_API_URL=http://analytics-api:8000
       - DASHBOARD_URL=http://dashboard:8080
-      - MKDOC_URL=http://mkdocs:8000
+      - MKDOC_URL=http://mkdocs:8000 # can "not" working in this docker-compose test
       - TIME_SERVER_URL=http://time-server:8000
       - ROLE_FILE=roles.example.yml
     ports:
       - "8000:8000"
     profiles:
       - before-ui
-    
-  # covid-simulator:
-  #   image: covid_data_simulator:latest
-  #   env_file:
-  #     - ../services/CovidDataSimulator/environments/dev/.env.dev
-  #   environment:
-  #     - ENVIRONMENT=DEV
-  #     - INGESTOR_URL=http://covid-ingestor:8000/collect
-  #     - REALY_TIMEOUT=3600
-
-
-  # covid-ingestor:
-  #   image: covid_data_ingestor:latest
-  #   env_file:
-  #     - ../services/CovidDataIngestor/environments/dev/.env.dev
-  #   environment:
-  #     - ENVIRONMENT=DEV
-  #     - DATABASE_URL=postgresql://postgres:password@db:5432/safezone
-
 
   analytics-api:
     image: safezone_analytics_api:latest
     env_file:
-      - ../services/SafeZoneAnalyticsAPI/environments/dev/.env.dev
+      - ../../services/SafeZoneAnalyticsAPI/environments/dev/.env.dev
     environment:
       - ENVIRONMENT=DEV
       - DATABASE_URL=postgresql://postgres:password@db:5432/safezone
@@ -103,7 +84,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - ../services/SafeZoneDashboard/.env.example
+      - ../../services/SafeZoneDashboard/.env.example
     environment:
       - ENVIRONMENT=DEV
       - ANALYTICS_API_URL=http://analytics-api:8000
