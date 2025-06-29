@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    volumes:
+      - ../temp/db_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  covid-simulator:
+    image: covid_data_simulator:latest
+    env_file:
+      - ../../services/CovidDataSimulator/.env.example
+    volumes:
+      - ../../services/CovidDataSimulator/data/covid_data.csv:/data/covid_data.csv
+    environment:
+      - ENVIRONMENT=DEV
+      - INGESTOR_URL=http://covid-ingestor:8000
+      - MAX_CONCURRENT_REQUESTS=50
+      - LOG_LEVEL=DEBUG
+    ports:
+      - "8000:8000"
+
+  covid-ingestor:
+    image: covid_data_ingestor:latest
+    env_file:
+      - ../../services/CovidDataIngestor/environments/dev/.env.dev
+    environment:
+      - ENVIRONMENT=DEV
+      - DATABASE_URL=postgresql://postgres:password@db:5432/safezone
