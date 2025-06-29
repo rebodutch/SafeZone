@@ -28,7 +28,7 @@ fi
 echo "Running unit tests..."
 docker run --rm \
   --name "$CONTAINER_NAME" "$IMAGE_NAME:$IMAGE_TAG" \
-  pytest --cov=/app --cov-report=term-missing /test/unit_test
+  pytest /test/unit_test
 
 # # integration test
 echo "Running integration tests..."
