@@ -5,9 +5,7 @@
         "date": "2023-03-20",
         "expected_status_code": 200,
         "expected_response": {
-            "data": {
-                "detail": "Data sent successfully for date 2023-03-20."
-            },
+            "detail": "Data sent successfully for date 2023-03-20.",
             "message": "Data sent successfully",
             "success": true
         }
@@ -19,9 +17,7 @@
         "end_date": "2023-04-05",
         "expected_status_code": 200,
         "expected_response": {
-            "data": {
-                "detail": "Data sent successfully for dates 2023-03-20 ~ 2023-04-05."
-            },
+            "detail": "Data sent successfully for dates 2023-03-20 ~ 2023-04-05.",
             "message": "Data sent successfully",
             "success": true
         }
@@ -57,7 +53,7 @@
         "endpoint": "/simulate/interval",
         "start_date": "2023-03-25",
         "end_date": "2023-03-20",
-        "expected_status_code": 400
+        "expected_status_code": 422
     },
     {
         "test_describes": "Request for non-existent endpoint scenario",
@@ -81,9 +77,7 @@
         "end_date": "2023-03-20",
         "expected_status_code": 200,
         "expected_response": {
-            "data": {
-                "detail": "Data sent successfully for dates 2023-03-20 ~ 2023-03-20."
-            },
+            "detail": "Data sent successfully for dates 2023-03-20 ~ 2023-03-20.",
             "message": "Data sent successfully",
             "success": true
         }

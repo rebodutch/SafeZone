@@ -1,25 +1,23 @@
 # app/api/endpoints.py
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
-from pipeline.orchestrator import handle_daily_request, handle_interval_request
-from api.schemas import (
-    APIResponse,
-    DailyParameters,
-    IntervalParameters,
-)
-from config.logger import get_logger
+import logging
+
+from fastapi import APIRouter, Depends # type: ignore
+
+from utils.pydantic_model.request import DailyParameters, IntervalParameters
+from utils.pydantic_model.response import APIResponse, HealthResponse
+from pipeline.orchestrator import handle_request
+
 
 router = APIRouter()
-logger = get_logger()
+logger = logging.getLogger(__name__)
+
 
 @router.get("/health")
 async def health_check():
-    """
-    Health check endpoint to verify if the API is running.
-    """
-    return JSONResponse(
-        content={"status": "healthy"},
-        status_code=200,
+    return HealthResponse(
+        success=True,
+        message="API is running",
+        data={"detail": "The API is running smoothly."},
     )
 
 
@@ -29,19 +27,14 @@ async def process_data(params: DailyParameters = Depends()):
 
     logger.info(f"Received request to simulate {date} data.")
 
-    handle_daily_request(date)
+    await handle_request(date)
 
-    response = APIResponse(
-        success=True,
-        message="Data sent successfully",
-        data={"detail": f"Data sent successfully for date {date}."},
-    )
-    
     logger.info("Data simulation request handle success.")
 
-    return JSONResponse(
-        content=response.model_dump(exclude_none=True),
-        status_code=200,
+    return APIResponse(
+        success=True,
+        message="Data sent successfully",
+        detail=f"Data sent successfully for date {date}.",
     )
 
 
@@ -54,15 +47,12 @@ async def simulate_interval(params: IntervalParameters = Depends()):
         f"Received request to simulate interval data for dates {start_date} ~ {end_date}."
     )
 
-    handle_interval_request(start_date, end_date)
+    await handle_request(start_date, end_date)
 
-    response = APIResponse(
+    logger.info("Data simulation request handle success.")
+
+    return APIResponse(
         success=True,
         message="Data sent successfully",
-        data={"detail": f"Data sent successfully for dates {start_date} ~ {end_date}."},
-    )
-
-    return JSONResponse(
-        content=response.model_dump(exclude_none=True),
-        status_code=200,
+        detail=f"Data sent successfully for dates {start_date} ~ {end_date}.",
     )

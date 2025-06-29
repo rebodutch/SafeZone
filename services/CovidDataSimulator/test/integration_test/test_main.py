@@ -1,33 +1,36 @@
 import json
-import pytest
-from fastapi.testclient import TestClient
-from config.settings import INGESTOR_URL
-from config.logger import get_logger
-from main import app
+import logging
 
-client = TestClient(app)
+import respx # type: ignore
+import pytest # type: ignore
+from httpx import Response # type: ignore
+from fastapi.testclient import TestClient # type: ignore
+
+from config.settings import INGESTOR_URL # type: ignore
+from main import create_app # type: ignore
+
+client = TestClient(create_app())
 
 @pytest.fixture(scope="module")
 def logger():
-    return get_logger()
+    return logging.getLogger(__name__)
 
 # Import test cases
 with open("/test/cases/test_integration.json", encoding="utf-8") as f:
     test_cases = json.load(f)
 
-
-# Testing case by case
-@pytest.mark.parametrize("case", test_cases, ids=lambda case: case["test_describes"])
-def test_data_product(case, requests_mock, logger):
+@respx.mock
+@pytest.mark.parametrize("case", test_cases, ids=lambda case: case["test_describes"]) # testing case by case
+def test_data_product(case, logger):
 
     endpoint = case["endpoint"]
+    mock_url = INGESTOR_URL + "/collect"
 
     # Mock CovidDataIngestor behavior by returning a predefined response if 'expected_response' is present in the test case
     if "expected_response" in case:
-        mock_response = case["expected_response"]
-        requests_mock.post(INGESTOR_URL, json=mock_response)
+        respx.post(mock_url).mock(return_value=Response(200, json=case["expected_response"]))
     else:
-        requests_mock.post(INGESTOR_URL, json={})
+        respx.post(mock_url).mock(return_value=Response(200, json={}))
 
     # Handle daily requests
     if endpoint == "/simulate/daily":
@@ -38,9 +41,15 @@ def test_data_product(case, requests_mock, logger):
             response = client.get(f"/simulate/daily?date={date}")
         assert response.status_code == case["expected_status_code"]
 
-        if "expected_response" in case:
+        # remove timestamp from response for comparison
+        response_body = response.json()
+        if "timestamp" in response_body:
+            del response_body["timestamp"]
+        # remove items if value is None
+        response_body = {k: v for k, v in response_body.items() if v is not None}
 
-            assert response.json() == case["expected_response"]
+        if "expected_response" in case:
+            assert response_body == case["expected_response"]
 
     # Handle interval requests
     # Check if both start_date and end_date are provided in the test case
@@ -57,10 +66,15 @@ def test_data_product(case, requests_mock, logger):
             )
         assert response.status_code == case["expected_status_code"]
 
+        # remove timestamp from response for comparison
+        response_body = response.json()
+        if "timestamp" in response_body:
+            del response_body["timestamp"]
+        # remove items if value is None
+        response_body = {k: v for k, v in response_body.items() if v is not None}
+       
         if "expected_response" in case:
-            logger.debug(response.json())
-            logger.debug(case["expected_response"])
-            assert response.json() == case["expected_response"]
+            assert response_body == case["expected_response"]
 
     # Handle endpoints that are not /simulate/daily or /simulate/interval
     else:

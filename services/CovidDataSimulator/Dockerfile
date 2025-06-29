@@ -1,17 +1,13 @@
 FROM python:3.13-slim
 
 # Copy requirements file into the container
-COPY services/CovidDataSimulator/environments/dev/requirements.txt .
+COPY services/CovidDataSimulator/requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
-# Copy all project files into the container
 COPY services/CovidDataSimulator/app /app
-# copy utils
 COPY utils /app/utils
-# copy data
-COPY services/CovidDataSimulator/environments/shared/data /data
 
 ENV PYTHONPATH=/app
 WORKDIR /app

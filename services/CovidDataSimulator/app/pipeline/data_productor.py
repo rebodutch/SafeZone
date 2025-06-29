@@ -1,6 +1,7 @@
 # app/services/data_productor.py
-import pandas as pd
-from exceptions.custom_exceptions import EmptyDataError
+import pandas as pd # type: ignore
+
+from exceptions.custom import EmptyDataError
 
 def read_csv():
     data = pd.read_csv("/data/covid_data.csv")

@@ -1,0 +1,10 @@
+FROM covid_data_simulator:latest
+
+# Copy requirements file into the container
+COPY services/CovidDataSimulator/requirements.test.txt .
+
+# Install dependencies specified in requirements.test.txt
+RUN pip install --no-cache-dir -r requirements.test.txt --root-user-action=ignore
+
+COPY services/CovidDataSimulator/test /test
+COPY services/CovidDataSimulator/.env.example /app/.env

@@ -1,4 +1,4 @@
-from pydantic import ValidationError
+from pydantic import ValidationError # type: ignore
 
 class APIValidationError(Exception):
    def __init__(self, exc: ValidationError):

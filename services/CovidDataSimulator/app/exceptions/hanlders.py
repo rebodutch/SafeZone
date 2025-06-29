@@ -1,14 +1,18 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from requests.exceptions import ReadTimeout, ConnectionError
-from exceptions.custom_exceptions import InvalidDateRangeError
-from exceptions.custom_exceptions import APIValidationError
-from exceptions.custom_exceptions import ServiceValidationError
-from exceptions.custom_exceptions import EmptyDataError
-from api.schemas import APIResponse
-from config.logger import get_logger
+import logging
 
-logger = get_logger()
+from fastapi import FastAPI, Request  # type: ignore
+from fastapi.responses import JSONResponse  # type: ignore
+from pydantic import ValidationError  # type: ignore
+
+from utils.pydantic_model.response import ErrorModel, APIResponse
+from exceptions.custom import (
+    InvalidDateRangeError,
+    APIValidationError,
+    ServiceValidationError,
+    EmptyDataError,
+)
+
+logger = logging.getLogger(__name__)
 
 
 async def invalid_date_range_error_handler(
@@ -19,7 +23,11 @@ async def invalid_date_range_error_handler(
     response = APIResponse(
         success=False,
         message="Invalid date range.",
-        errors={"fields": "start_date, end_date", "detail": str(exc)},
+        errors=ErrorModel(
+            fields="date range",
+            summary="the 'start_date' must be before the 'end_date'.",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
@@ -34,7 +42,11 @@ async def empty_data_error_handler(request: Request, exc: EmptyDataError):
     response = APIResponse(
         success=False,
         message="Empty data.",
-        errors={"fields": "date", "detail": str(exc)},
+        errors=ErrorModel(
+            fields="data",
+            summary="No data available for the given date(s).",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
@@ -51,7 +63,11 @@ async def service_validation_error_handler(
     response = APIResponse(
         success=False,
         message="Validation error in the service.",
-        errors={"detail": str(exc)},
+        errors=ErrorModel(
+            fields="output data",
+            summary="Output data validation failed.",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
@@ -60,43 +76,55 @@ async def service_validation_error_handler(
     )
 
 
-def read_timeout_handler(request: Request, exc: ReadTimeout):
-    logger.error(f"Read timeout error: Connection to the ingestor service timed out.")
+async def api_validation_error_handler(request: Request, exc: APIValidationError):
+    logger.error(f"API validation error: {exc}")
 
     response = APIResponse(
         success=False,
-        message="connect timeout error",
-        errors={"detail": f"Connection to internal service timed out."},
+        message="Validation error in the API.",
+        errors=ErrorModel(
+            fields="input data",
+            summary="Input data validation failed.",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
         content=response.model_dump(exclude_none=True),
-        status_code=504,
+        status_code=422,
     )
 
 
-def connect_error_handler(request: Request, exc: ConnectionError):
-    logger.error(f"Read timeout error: Connection to the ingestor service timed out.")
+async def validation_error_handler(request: Request, exc: ValidationError):
+    logger.error(f"Validation error: {exc}")
 
     response = APIResponse(
         success=False,
-        message="connect failed error.",
-        errors={"detail": f"Connection to internal service failed."},
+        message="Validation error.",
+        errors=ErrorModel(
+            fields="input data",
+            summary="Input data validation failed.",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
         content=response.model_dump(exclude_none=True),
-        status_code=504,
+        status_code=422,
     )
 
 
-def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Internal server error: {exc}")
 
     response = APIResponse(
         success=False,
         message="Internal server error.",
-        errors={"detail": "An unexpected error occurred. Please contact support."},
+        errors=ErrorModel(
+            fields="unknown",
+            summary="Unexpected error occurred during processing.",
+            detail=str(exc),
+        ),
     )
 
     return JSONResponse(
@@ -111,8 +139,9 @@ def register_exception_handlers(app: FastAPI):
     app.add_exception_handler(InvalidDateRangeError, invalid_date_range_error_handler)
     app.add_exception_handler(EmptyDataError, empty_data_error_handler)
     app.add_exception_handler(ServiceValidationError, service_validation_error_handler)
-    # requests exception handlers
-    app.add_exception_handler(ReadTimeout, read_timeout_handler)
-    app.add_exception_handler(ConnectionError, connect_error_handler)
+    app.add_exception_handler(APIValidationError, api_validation_error_handler)
     # global exception handler
+    app.add_exception_handler(
+        ValidationError, api_validation_error_handler
+    )  # handle pydantic validation errors globally
     app.add_exception_handler(Exception, global_exception_handler)
