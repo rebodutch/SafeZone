@@ -1,0 +1,10 @@
+FROM data_ingestor:latest
+
+# Copy requirements file into the container
+COPY services/DataIngestor/requirements.test.txt .
+
+# Install dependencies specified in requirements.test.txt
+RUN pip install --no-cache-dir -r requirements.test.txt --root-user-action=ignore
+
+COPY services/DataIngestor/test /test
+COPY services/DataIngestor/.env.example /app/.env

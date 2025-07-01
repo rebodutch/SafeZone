@@ -1,4 +1,4 @@
-SERVICE_NAMES := CovidDataIngestor CovidDataSimulator SafeZoneAnalyticsAPI SafeZoneDashboard
+SERVICE_NAMES := DataIngestor CovidDataSimulator SafeZoneAnalyticsAPI SafeZoneDashboard
 TOOL_NAMES := CLI TimeServer
 
 # Tests do not cover the toolkit, so we need to test them manually
