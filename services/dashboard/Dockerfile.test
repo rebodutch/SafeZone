@@ -1,11 +1,13 @@
 FROM safezone_dashboard:latest
 
 # ===== the following lines are added for test =====
-COPY services/SafeZoneDashboard/requirements.test.txt .
+COPY services/dashboard/requirements.test.txt .
 # Install test dependencies specified in requirements.test.txt
 RUN pip install --no-cache-dir -r requirements.test.txt --root-user-action=ignore
 
 # copy .env file
-COPY services/SafeZoneDashboard/.env.example /app/.env
+COPY services/dashboard/.env.example /app/.env
 # copy test
-COPY services/SafeZoneDashboard/test /test
+COPY services/dashboard/test /test
+
+COPY utils /app/utils
