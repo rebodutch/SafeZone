@@ -1,1 +1,0 @@
-- 手動測試部份被棄用：因為專案引入 docker compose 做 smoke testing

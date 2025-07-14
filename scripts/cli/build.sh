@@ -10,13 +10,13 @@ set -e
 # ---------------- Step 1: Set Variables ----------------------
 AUTO_PUSH=false
 IMAGE_REPO="ghcr.io/safezone"
-COMMAND_IMAGE_NAME="safezone_cli_command"
-RELAY_IMAGE_NAME="safezone_cli_relay"
+COMMAND_IMAGE_NAME="safezone-cli-command"
+RELAY_IMAGE_NAME="safezone-cli-relay"
 IMAGE_TAG="latest" # Use a consistent tag for both images to simplify version control
 COMMAND_DOCKERFILE_PATH="./toolkit/cli/command"
 RELAY_DOCKERFILE_PATH="./toolkit/cli/relay"
 SCRIPT_PATH="$(pwd)/toolkit/cli/command/scripts/local_run.sh"
-INSTANCE_NAME="safezone_cli_daemon"
+INSTANCE_NAME="safezone-cli-daemon"
 
 # ----------- PHASE 0: stop the previous version daemon container and remove --------------
 # This phase ensures that any previous instances of the CLI daemon are stopped and removed..
