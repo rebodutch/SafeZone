@@ -1,11 +1,10 @@
 .PHONY: help build-all test-all push-all build-% test-% build-tool-% push-% \
-        build-worker-golang test-worker-golang test-dashboard build-tool-cli \
-        build-tool-all
+        test-worker-golang test-dashboard build-tool-cli build-tool-all
 
 # -------------------------
 # 1. components and their properties
 # -------------------------
-SERVICE_NAMES := data-ingestor pandemic-simulator analytics-api dashboard
+SERVICE_NAMES := data-ingestor pandemic-simulator analytics-api dashboard worker-golang
 
 data-ingestor_IMAGE_NAME        = safezone-data-ingestor
 data-ingestor_VERSION           = latest
@@ -23,6 +22,10 @@ analytics-api_PATH            = ./services/analytics-api
 dashboard_IMAGE_NAME      = safezone-dashboard
 dashboard_VERSION         = latest
 dashboard_PATH            = ./services/dashboard
+
+worker-golang_IMAGE_NAME      = safezone-worker
+worker-golang_VERSION         = latest
+worker-golang_PATH            = ./services/worker-golang
 
 # -------------------------
 # 2. tools and their properties
