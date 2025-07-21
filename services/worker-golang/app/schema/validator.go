@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"regexp"
 
 	"go.uber.org/zap"
@@ -21,6 +22,10 @@ func NewCovidValidator(logger *zap.Logger, cache *cache.Cache) *CovidValidator {
 	}
 }
 
+func DebugString(label, s string) {
+	fmt.Printf("%s : [%s] HEX: [% x]\n", label, s, []byte(s))
+}
+
 func (v *CovidValidator) Validate(event CovidEvent) bool {
 	// date is not in YYYY-MM-DD format
 	if !v.datePattern.MatchString(event.Payload.Date) {
@@ -28,8 +33,10 @@ func (v *CovidValidator) Validate(event CovidEvent) bool {
 		return false
 	}
 	// city and region must exist in cache
+	DebugString("EVENT_City", event.Payload.City)
 	cityID := v.cache.GetCityID(event.Payload.City)
 	regionID := v.cache.GetRegionID(cityID, event.Payload.Region)
+	fmt.Println("City ID:", cityID, "Region ID:", regionID)
 	if cityID < 0 || regionID < 0 {
 		v.Logger.Warn("City or region not found in cache",
 			zap.String("city", event.Payload.City),

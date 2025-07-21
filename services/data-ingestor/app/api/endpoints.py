@@ -42,10 +42,12 @@ async def sent_to_kafka(
             payload=payload,  # Ensure payload matches the model
             version="0.1.0",
         )
+        logger.debug(f"Sending event to Kafka: with payload {json.dumps(event.model_dump())} and partition key {partition_key}")
+
         await producer.send_and_wait(
             topic=KAFKA_TOPIC,
-            value=json.dumps(event.model_dump()),
-            key=partition_key,
+            value=json.dumps(event.model_dump()).encode("utf-8"),
+            key=partition_key.encode("utf-8"),
         )
     # If the producer is not available, log the payload and partition key for testing purposes or debugging.
     else:

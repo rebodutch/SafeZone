@@ -29,7 +29,7 @@ async def send_data(data):
 
     async with httpx.AsyncClient() as client:
         tasks = [
-            send_one(sem, client, INGESTOR_URL + "/collect", payload)
+            send_one(sem, client, INGESTOR_URL + "/covid_event", payload)
             for payload in payloads
         ]
         # gather 所有併發請求

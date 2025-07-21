@@ -12,6 +12,7 @@ async def startup_event():
         enable_idempotence=True,
     )
     await producer.start()
+    return producer
 
 
 async def shutdown_event(producer: AIOKafkaProducer = None):
