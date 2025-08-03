@@ -51,13 +51,17 @@ async def process_data(request: Request, params: RegionParameters = Depends()):
         "region": params.region,
         "ratio": False if not params.ratio else True,
     }
-    logger.debug(
-        f"Received region-level request to query data with params {query_params}."
+    logger.info(
+        f"Received region-level request to query data with params {query_params}.",
+        extra={"event": "query_region_cases"},
     )
 
     query_result = handle_query_request(request, query_params)
 
-    logger.debug(f"Query region-level result: {query_result}")
+    logger.info(
+        f"Query region-level result: {query_result}",
+        extra={"event": "query_region_cases"},
+    )
 
     return AnalyticsAPIResponse(
         success=True,
@@ -81,13 +85,16 @@ async def process_data(request: Request, params: CityParameters = Depends()):
         "ratio": False if not params.ratio else True,
     }
 
-    logger.debug(
-        f"Received city-level request to query data with params {query_params}."
+    logger.info(
+        f"Received city-level request to query data with params {query_params}.",
+        extra={"event": "query_city_cases"},
     )
 
     query_result = handle_query_request(request, query_params)
 
-    logger.debug(f"Query city-level result: {query_result}")
+    logger.info(
+        f"Query city-level result: {query_result}", extra={"event": "query_city_cases"}
+    )
 
     return AnalyticsAPIResponse(
         success=True,
@@ -109,13 +116,17 @@ async def process_data(request: Request, params: NationalParameters = Depends())
         "end_date": end_date,
     }
 
-    logger.debug(
-        f"Received national-level request to query data with params {query_params}."
+    logger.info(
+        f"Received national-level request to query data with params {query_params}.",
+        extra={"event": "query_national_cases"},
     )
 
     query_result = handle_query_request(request, query_params)
 
-    logger.debug(f"Query national-level result: {query_result}")
+    logger.info(
+        f"Query national-level result: {query_result}",
+        extra={"event": "query_national_cases"},
+    )
 
     return AnalyticsAPIResponse(
         success=True,

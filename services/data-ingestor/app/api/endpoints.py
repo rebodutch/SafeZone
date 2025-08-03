@@ -7,12 +7,15 @@ from fastapi import APIRouter, Request  # type: ignore
 from fastapi.responses import JSONResponse  # type: ignore
 from pydantic import BaseModel, ValidationError  # type: ignore
 
+from utils.logging.baselogger import trace_id_var
 from utils.pydantic_model.request import CovidDataModel
 from utils.pydantic_model.response import ErrorModel, APIResponse, HealthResponse
+
 from config.settings import KAFKA_TOPIC
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
 
 # Kafka event contract model
 # This model defines the structure of the event that will be sent to Kafka.
@@ -34,28 +37,30 @@ def generate_partition_key(city: str, region: str) -> str:
 async def sent_to_kafka(
     producer, payload: CovidDataModel, partition_key: str, trace_id: str = "-"
 ):
-    if producer:
-        event = CovidContract(
-            event_type="covid_event",
-            event_time=int(time.time() * 1000),  # current time in milliseconds
-            trace_id=trace_id,
-            payload=payload,  # Ensure payload matches the model
-            version="0.1.0",
+    if not producer:
+        logger.error(
+            "Kafka producer is not available, cannot send data to Kafka.",
+            extra={"event": "kafka_producer_not_available"},
         )
-        logger.debug(f"Sending event to Kafka: with payload {json.dumps(event.model_dump())} and partition key {partition_key}")
-
-        await producer.send_and_wait(
-            topic=KAFKA_TOPIC,
-            value=json.dumps(event.model_dump()).encode("utf-8"),
-            key=partition_key.encode("utf-8"),
-        )
-    # If the producer is not available, log the payload and partition key for testing purposes or debugging.
-    else:
-        logger.debug(
-            "Kafka producer is not available, the expected behavior is sent following data to Kafka"
-        )
-        logger.debug(f"Payload: {payload}, Partition Key: {partition_key}")
         return
+
+    event = CovidContract(
+        event_type="covid_event",
+        event_time=int(time.time() * 1000),  # current time in milliseconds
+        trace_id=trace_id,
+        payload=payload,  # Ensure payload matches the model
+        version="0.1.0",
+    )
+    logger.info(
+        f"Sending event to Kafka: with payload {json.dumps(event.model_dump())} and partition key {partition_key}",
+        extra={"event": "send_event_to_kafka"},
+    )
+
+    await producer.send_and_wait(
+        topic=KAFKA_TOPIC,
+        value=json.dumps(event.model_dump()).encode("utf-8"),
+        key=partition_key.encode("utf-8"),
+    )
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -69,7 +74,10 @@ async def covid_event_handler(
     payload: CovidDataModel,
 ):
     try:
-        logger.debug("Received request to endpoint /covid_event with payload")
+        logger.info(
+            "Received request to endpoint /covid_event with payload",
+            extra={"event": "covid_event_request"},
+        )
 
         data = payload.model_dump()  # Convert Pydantic model to dict
         await sent_to_kafka(
@@ -79,8 +87,12 @@ async def covid_event_handler(
                 city=data["city"],
                 region=data["region"],
             ),
+            trace_id=trace_id_var.get(),
         )
-        logger.debug("Data sent to Kafka successfully")
+        logger.info(
+            "Data produced to Kafka successfully.",
+            extra={"event": "data_produced_to_kafka"},
+        )
 
         return APIResponse(
             success=True,

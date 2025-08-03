@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc # type: ignore
 from flask import jsonify # type: ignore
 
 from utils.logging.baselogger import setup_logger
+
 from layout.dashboard_layout import get_dashboard_layout
 from callbacks.register import register_callbacks
 from config.settings import SERVER_IP, SERVER_PORT, SERVICE_NAME, SERVICE_VERSION, LOG_LEVEL
@@ -33,5 +34,5 @@ if __name__ == "__main__":
     )
     logger = logging.getLogger(__name__)
     app = create_app()
-    logger.info(f"Starting {SERVICE_NAME} version {SERVICE_VERSION}.")
+    logger.info(f"Starting {SERVICE_NAME} version {SERVICE_VERSION}.", event="service_startup")
     app.run_server(host=SERVER_IP, port=SERVER_PORT, debug=True)

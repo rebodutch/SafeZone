@@ -1,25 +1,29 @@
 # app/services/data_sender.py
 import logging
-import asyncio 
+import asyncio
 
 import httpx  # type: ignore
-from pydantic import ValidationError # type: ignore
+from pydantic import ValidationError  # type: ignore
 
 from utils.pydantic_model.request import CovidDataModel
+from utils.logging.baselogger import trace_id_var
+
 from exceptions.custom import ServiceValidationError
 from config.settings import INGESTOR_URL, MAX_CONCURRENT_REQUESTS
 
 
 logger = logging.getLogger(__name__)
 
+
 async def send_one(sem, client, url, case):
     async with sem:
-        logger.debug(f"Sending the case = {case} to ingrstor.")
-        await client.post(url, json=case, timeout=5.0)
-        logger.debug(f"Case = {case} sent to ingrstor.")
+        trace_header = {"X-Trace-ID": str(trace_id_var.get())}
+        await client.post(url, headers=trace_header, json=case, timeout=5.0)
+        logger.info(f"Case = {case} sent to ingestor.", extra={"event": "case_sent"})
+
 
 async def send_data(data):
-    # add semmphore to limit the number of concurrent requests
+    # add semaphore to limit the number of concurrent requests
     sem = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
     # validate all data first, raise at once if invalid
     try:

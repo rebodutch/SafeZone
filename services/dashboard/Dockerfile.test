@@ -1,4 +1,4 @@
-FROM safezone_dashboard:latest
+FROM safezone-dashboard:latest
 
 # ===== the following lines are added for test =====
 COPY services/dashboard/requirements.test.txt .

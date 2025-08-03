@@ -1,19 +1,18 @@
 package service
 
 import (
-	"go.uber.org/zap"
-
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"safezone.service.worker-golang/app/adapter"
 	"safezone.service.worker-golang/app/config"
 	"safezone.service.worker-golang/app/pkg/cache"
+	"safezone.service.worker-golang/app/pkg/logger"
 	"safezone.service.worker-golang/app/schema"
 	"safezone.service.worker-golang/app/strategy"
 )
 
 type WorkerFactory struct {
-	Logger *zap.Logger
+	Logger *logger.ContextLogger
 	Config *config.Config
 }
 

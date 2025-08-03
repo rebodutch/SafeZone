@@ -7,6 +7,7 @@ from config.settings import TIME_SERVER_URL
 
 logger = logging.getLogger(__name__)
 
+
 def get_now():
     try:
         logger.debug("Fetching current date from time server.")
@@ -15,7 +16,9 @@ def get_now():
         # date change check
         reps.raise_for_status()  # Raise an error for bad responses
         system_date = reps.json().get("system_date")
-        logger.debug(f"Successfully fetched system date {system_date} from time server.")
+        logger.debug(
+            f"Successfully fetched system date {system_date} from time server."
+        )
         return system_date
     except requests.RequestException as e:
         logger.error(f"Error fetching date from time server: {e}")

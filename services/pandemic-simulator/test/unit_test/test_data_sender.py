@@ -23,7 +23,7 @@ with open("/test/cases/test_data_sender.json", encoding="utf-8") as f:
 @pytest.mark.parametrize("case", test_cases, ids=lambda case: case["test_describes"]) # testing case by case
 async def test_send_data(case, logger):
     # simulate request by requests_mock 
-    mock_url = INGESTOR_URL + "/collect"
+    mock_url = INGESTOR_URL + "/covid_event"
     respx.post(mock_url).mock(return_value=Response(200, json=case["expected_response"]))
     
     try:

@@ -25,7 +25,7 @@ async def get_redis_client():
             decode_responses=True,
         )
         await redis_client.ping()  # Test the connection
-        logger.info("Connected to Redis successfully.")
+        logger.debug("Connected to Redis successfully.")
         return redis_client
     except Exception as e:
         logger.error(f"Failed to connect to Redis: {e}")
@@ -70,7 +70,9 @@ def redis_cache(endpoint, ttl=86400):
             resp = await func(*args, **kwargs)
             # resp is an instance of AnalyticsAPIResponse, it can be serialized to JSON
             # and can be return as a JSONResponse content
-            if getattr(resp, "success", True) and isinstance(resp, AnalyticsAPIResponse):
+            if getattr(resp, "success", True) and isinstance(
+                resp, AnalyticsAPIResponse
+            ):
                 await redis_client.setex(
                     cache_key, ttl, resp.model_dump_json(exclude="timestamp")
                 )

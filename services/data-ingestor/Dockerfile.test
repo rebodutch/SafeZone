@@ -1,4 +1,4 @@
-FROM data_ingestor:latest
+FROM safezone-data-ingestor:latest
 
 # Copy requirements file into the container
 COPY services/data-ingestor/requirements.test.txt .

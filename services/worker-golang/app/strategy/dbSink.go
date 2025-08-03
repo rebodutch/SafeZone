@@ -8,16 +8,17 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 	"safezone.service.worker-golang/app/pkg/cache"
+	"safezone.service.worker-golang/app/pkg/logger"
 	"safezone.service.worker-golang/app/schema"
 )
 
 type DBSink struct {
 	DB     *sqlx.DB
-	Logger *zap.Logger
+	Logger *logger.ContextLogger
 	cache  *cache.Cache
 }
 
-func NewDBSink(logger *zap.Logger, db *sqlx.DB, cache *cache.Cache) *DBSink {
+func NewDBSink(logger *logger.ContextLogger, db *sqlx.DB, cache *cache.Cache) *DBSink {
 	return &DBSink{
 		Logger: logger,
 		DB:     db,
@@ -29,7 +30,7 @@ func (d *DBSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 	// Check if the context is done before proceeding
 	tx, txErr := d.DB.BeginTxx(ctx, nil)
 	if txErr != nil {
-		d.Logger.Error("Failed to begin transaction", zap.Error(txErr))
+		d.Logger.Error(ctx, "Failed to begin transaction", zap.Error(txErr))
 		return txErr
 	}
 
@@ -52,7 +53,7 @@ func (d *DBSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 	// executing the batch insert
 	_, execErr := tx.ExecContext(ctx, sql, args...)
 	if execErr != nil {
-		d.Logger.Error("Failed to execute batch insert", zap.Error(execErr))
+		d.Logger.Error(ctx, "Failed to execute batch insert", zap.Error(execErr))
 		tx.Rollback()
 		return execErr
 	}
@@ -60,9 +61,9 @@ func (d *DBSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 
 }
 
-func (d *DBSink) Close() error {
+func (d *DBSink) Close(ctx context.Context) error {
 	if d.Logger != nil {
-		d.Logger.Info("DBSink closed")
+		d.Logger.Info(ctx, "DBSink closed")
 	}
 	return nil
 }

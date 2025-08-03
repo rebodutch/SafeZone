@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"safezone.service.worker-golang/app/pkg/logger"
 	"safezone.service.worker-golang/app/schema"
 )
 
@@ -14,14 +15,14 @@ import (
 type MockSource struct {
 	Count  int
 	Curr   int
-	Logger *zap.Logger
+	Logger *logger.ContextLogger
 }
 
 func (m *MockSource) GetEvent(ctx context.Context) (*schema.CovidEvent, error) {
 	if m.Curr < m.Count {
 		time.Sleep(100 * time.Millisecond) // simulate some processing delay
 
-		m.Logger.Debug("Generating mock event",
+		m.Logger.Debug(ctx, "Generating mock event",
 			zap.Int("current_event_index", m.Curr),
 			zap.Int("total_events", m.Count))
 
@@ -51,8 +52,8 @@ func (m *MockSource) GetEvent(ctx context.Context) (*schema.CovidEvent, error) {
 	}
 }
 
-func (m *MockSource) Close() error {
-	m.Logger.Info("Closing mock event source",
+func (m *MockSource) Close(ctx context.Context) error {
+	m.Logger.Info(ctx, "Closing mock event source",
 		zap.Int("total_events_generated", m.Curr))
 	return nil
 }

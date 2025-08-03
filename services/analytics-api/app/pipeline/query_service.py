@@ -23,7 +23,9 @@ def query_cases(db_session, geo_cache, populations_cache, params):
 
 
 def query_cases_by_region(Session, geo_cache, populations_cache, params):
-    logger.debug(f"Query region cases with {params}.")
+    logger.info(
+        f"Query region cases with {params}.", extra={"event": "query_region_cases"}
+    )
 
     with Session() as session:
         # check if city and region are valid
@@ -45,7 +47,10 @@ def query_cases_by_region(Session, geo_cache, populations_cache, params):
         cases = session.execute(query).scalar()
         cases = cases if cases else 0
 
-    logger.debug(f"Query region cases successful with {params}.")
+    logger.info(
+        f"Query region cases successful with {params}.",
+        extra={"event": "query_region_cases_success"},
+    )
 
     if "ratio" in params and params["ratio"]:
         # calculate cases to population ratio
@@ -70,7 +75,7 @@ def query_cases_by_region(Session, geo_cache, populations_cache, params):
 
 
 def query_cases_by_city(Session, geo_cache, populations_cache, params):
-    logger.debug(f"Query city case with {params}.")
+    logger.info(f"Query city case with {params}.", extra={"event": "query_city_cases"})
 
     with Session() as session:
         # check if city is valid
@@ -87,13 +92,20 @@ def query_cases_by_city(Session, geo_cache, populations_cache, params):
         cases = session.execute(query).scalar()
         cases = cases if cases else 0
 
-    logger.debug(f"Query city cases successful with {params}.")
+    logger.info(
+        f"Query city cases successful with {params}.",
+        extra={"event": "query_city_cases_success"},
+    )
 
     if "ratio" in params and params["ratio"]:
         city_population = 0
         for _, population in populations_cache[city_id].items():
             city_population += population
-        cases = round(cases * RATIO_FACTOR / city_population, 5) if city_population > 0 else 0
+        cases = (
+            round(cases * RATIO_FACTOR / city_population, 5)
+            if city_population > 0
+            else 0
+        )
 
         return {
             "start_date": params["start_date"].strftime("%Y-%m-%d"),
@@ -112,7 +124,10 @@ def query_cases_by_city(Session, geo_cache, populations_cache, params):
 
 
 def query_cases_national(Session, params):
-    logger.debug(f"Querying national cases with {params}.")
+    logger.info(
+        f"Querying national cases with {params}.",
+        extra={"event": "query_national_cases"},
+    )
 
     with Session() as session:
         #  query cases for the whole country
@@ -123,7 +138,10 @@ def query_cases_national(Session, params):
         cases = session.execute(query).scalar()
         cases = cases if cases else 0
 
-    logger.debug(f"Query national cases successful with {params}.")
+    logger.info(
+        f"Query national cases successful with {params}.",
+        extra={"event": "query_national_cases_success"},
+    )
 
     return {
         "start_date": params["start_date"].strftime("%Y-%m-%d"),

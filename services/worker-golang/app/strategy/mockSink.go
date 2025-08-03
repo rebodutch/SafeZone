@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"go.uber.org/zap"
+	"safezone.service.worker-golang/app/pkg/logger"
 	"safezone.service.worker-golang/app/schema"
 )
 
 type MockSink struct {
-	Logger *zap.Logger
+	Logger *logger.ContextLogger
 }
 
 func (m *MockSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
@@ -17,7 +18,7 @@ func (m *MockSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 		return ctx.Err()
 	default:
 		for _, evt := range batch {
-			m.Logger.Debug("Flushing event",
+			m.Logger.Debug(ctx, "Flushing event",
 				zap.String("event_type", evt.EventType),
 				zap.String("trace_id", evt.TraceID),
 				zap.String("date", evt.Payload.Date),
@@ -29,7 +30,7 @@ func (m *MockSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 	}
 }
 
-func (m *MockSink) Close() error {
-	m.Logger.Info("MockSink closed")
+func (m *MockSink) Close(ctx context.Context) error {
+	m.Logger.Info(ctx, "MockSink closed")
 	return nil
 }

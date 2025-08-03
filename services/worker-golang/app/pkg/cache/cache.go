@@ -23,7 +23,7 @@ func (c *Cache) NewCache(db *sqlx.DB) *Cache {
 		var name string
 		cityRows.Scan(&id, &name)
 		cityMap[name] = id
-		DebugString("DB_City", name)
+		// DebugString("City", name)
 	}
 	// caching region primary keys
 	regionRows, _ := db.Queryx("SELECT id, name, city_id FROM regions")
@@ -42,9 +42,6 @@ func (c *Cache) NewCache(db *sqlx.DB) *Cache {
 
 func (c *Cache) GetCityID(city string) int {
 	id, exists := c.cityMap[city]
-	fmt.Println("City_Cache:", c.cityMap)
-	fmt.Println("City ID:", id)
-	fmt.Println("City exists:", exists)
 	if !exists {
 		return -1
 	}

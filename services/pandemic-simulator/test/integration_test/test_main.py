@@ -24,7 +24,7 @@ with open("/test/cases/test_integration.json", encoding="utf-8") as f:
 def test_data_product(case, logger):
 
     endpoint = case["endpoint"]
-    mock_url = INGESTOR_URL + "/collect"
+    mock_url = INGESTOR_URL + "/covid_event"
 
     # Mock CovidDataIngestor behavior by returning a predefined response if 'expected_response' is present in the test case
     if "expected_response" in case:

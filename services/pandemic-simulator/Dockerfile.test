@@ -1,4 +1,4 @@
-FROM covid_data_simulator:latest
+FROM safezone-pandemic-simulator:latest
 
 # Copy requirements file into the container
 COPY services/pandemic-simulator/requirements.test.txt .

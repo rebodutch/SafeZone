@@ -1,4 +1,4 @@
-FROM safezone_analytics_api:latest
+FROM safezone-analytics-api:latest
 
 # ===== the following lines are added for test =====
 COPY services/analytics-api/requirements.test.txt .
