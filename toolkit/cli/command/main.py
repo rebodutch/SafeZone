@@ -81,10 +81,16 @@ db_app = typer.Typer(help="Database control commands (init, clear, reset_id).")
 
 @db_app.command()
 def init(
-    force: bool = typer.Option(False, "--force", help="Force re-initialize the database.")
+    force: bool = typer.Option(
+        False, "--force", help="Force re-initialize the database."
+    )
 ):
     """Initialize the covid data in the database."""
     try:
+
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
         resp = DBClient(trace_id).init(force=force)
         rich.print(resp)
     except Exception as e:
@@ -99,6 +105,9 @@ def clear():
         rich.print("Aborted.")
         raise typer.Abort()
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
         resp = DBClient(trace_id).clear()
         rich.print(resp)
     except Exception as e:
@@ -113,6 +122,9 @@ def reset():
         rich.print("Aborted.")
         raise typer.Abort()
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
         resp = DBClient(trace_id).reset()
         rich.print("clear all data in db including administrative data and covid data")
         rich.print("re-initialize the database with administrative data")
@@ -135,6 +147,9 @@ time_app = typer.Typer(help="Time control commands.")
 def now():
     """Get the current system time."""
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
         rich.print(TimeClient(trace_id).now())
     except Exception as e:
         rich.print(f"[Time now fail] {e}")
@@ -163,6 +178,9 @@ def set(
 
     try:
         rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+        rich.print(
             TimeClient(trace_id).set(
                 mock=mock, mock_date=mock_date, acceleration=acceleration
             )
@@ -176,6 +194,10 @@ def set(
 def status():
     """Get current time management status."""
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(TimeClient(trace_id).get_status())
     except Exception as e:
         rich.print(f"[Time status fail] {e}")
@@ -191,6 +213,10 @@ health_app = typer.Typer(help="Health check commands.")
 @health_app.command("all")
 def all():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(all=True))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -200,6 +226,10 @@ def all():
 @health_app.command("cli-relay")
 def cli_relay():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="cli-relay"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -209,6 +239,10 @@ def cli_relay():
 @health_app.command("db")
 def db():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="db"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -218,6 +252,10 @@ def db():
 @health_app.command("redis")
 def redis():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="redis"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -227,6 +265,10 @@ def redis():
 @health_app.command("data-simulator")
 def data_simulator():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="data-simulator"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -236,6 +278,10 @@ def data_simulator():
 @health_app.command("data-ingestor")
 def data_ingestor():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="data-ingestor"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -245,6 +291,10 @@ def data_ingestor():
 @health_app.command("analytics-api")
 def analytics_api():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="analytics-api"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -254,6 +304,10 @@ def analytics_api():
 @health_app.command("dashboard")
 def dashboard():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="dashboard"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -263,6 +317,10 @@ def dashboard():
 @health_app.command("mkdoc")
 def mkdoc():
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(HealthClient(trace_id).check(target="mkdoc"))
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
@@ -288,6 +346,10 @@ def simulate(
     """Simulate covid data for a specific date or interval."""
     try:
         rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
+        rich.print(
             DataflowClient(trace_id).simulate(
                 date=date, end_date=enddate, dry_run=dry_run
             )
@@ -309,6 +371,10 @@ def verify(
 ):
     """Verify covid data in the database."""
     try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
         rich.print(
             DataflowClient(trace_id).verify(
                 date=date, interval=interval, city=city, region=region, ratio=ratio

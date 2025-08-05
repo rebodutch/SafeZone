@@ -20,25 +20,6 @@ from config.settings import DB_URL
 logger = logging.getLogger(__name__)
 
 
-def reset_db_id():
-    """
-    Reset the id of the database.
-
-    """
-    # init the session
-    engine = create_engine(DB_URL)
-    # Create all tables
-    metadata.create_all(engine)
-
-    with Session(engine) as session:
-        # Reset the id of the tables
-        session.execute(text("ALTER SEQUENCE cities_id_seq RESTART WITH 1"))
-        session.execute(text("ALTER SEQUENCE regions_id_seq RESTART WITH 1"))
-        session.execute(text("ALTER SEQUENCE covid_cases_id_seq RESTART WITH 1"))
-        session.execute(text("ALTER SEQUENCE populations_id_seq RESTART WITH 1"))
-        session.commit()
-
-
 def reset_db():
     """
     Reset the database.

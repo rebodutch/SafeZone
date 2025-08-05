@@ -1,6 +1,5 @@
 services:
-
-# profiles: [infra], core, (seeding) ui
+  # profiles: [infra], core, (seeding) ui
 
   db:
     image: postgres:16
@@ -17,7 +16,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      
+
   cli-relay:
     image: safezone-cli-relay:latest
     env_file:
