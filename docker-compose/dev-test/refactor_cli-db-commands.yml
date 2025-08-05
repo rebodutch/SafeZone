@@ -1,0 +1,41 @@
+services:
+
+# profiles: [infra], core, (seeding) ui
+
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    volumes:
+      - ../temp/db_volume:/var/lib/postgresql/data # Use a named volume for persistent storage，it will reduce the seeding time
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  cli-relay:
+    image: safezone-cli-relay:latest
+    env_file:
+      - ../../.env.secret
+    environment:
+      - ENVIRONMENT=DEV
+      - DB_URL=postgresql://postgres:password@db:5432/safezone
+      - REPLICA_URL=postgresql://postgres:password@db:5432/safezone # Use the same database for simplicity
+      - REDIS_HOST=redis-state
+      - SIMULATOR_URL=http://pandemic-simulator:8000
+      - INGESTOR_URL=http://data-ingestor:8000
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - DASHBOARD_URL=http://dashboard:8080
+      - MKDOC_URL=http://mkdocs:8000
+      - TIME_SERVER_URL=http://time-server:8000
+      - ROLE_FILE=roles.example.yml
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db

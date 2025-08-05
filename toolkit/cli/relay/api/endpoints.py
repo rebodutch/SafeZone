@@ -15,7 +15,7 @@ import bin.db_helper as db_helper
 import bin.time_helper as time_helper
 import bin.health_helper as health_helper
 import bin.service_helper as service_helper
-from utils.pydantic_model.request import SimulateModel, SetTimeModel
+from utils.pydantic_model.request import SimulateModel, SetTimeModel, DBInitModel
 from utils.pydantic_model.request import VerifyModel, HealthCheckModel
 from utils.pydantic_model.response import APIResponse, AnalyticsAPIResponse
 from utils.pydantic_model.response import SystemDateResponse, MocktimeStatusResponse
@@ -259,13 +259,16 @@ async def get_status(
 # ---- DB Request ----
 @router.post("/db/init", response_model=APIResponse)
 async def db_init(
-    role=Depends(get_role),
+    payload: DBInitModel,
+    role=Depends(get_role)
 ):
     whitelist_check(role, ["admin"])
     try:
         logger.debug("Received request to db/init model.")
 
-        db_helper.init_db()
+        force = payload.model_dump().get("force", False)
+
+        db_helper.init_db(force=force)
 
         return APIResponse(success=True, message="Database initialized successfully.")
 
@@ -304,6 +307,32 @@ async def db_clear(
             errors={
                 "field": "Unknown",
                 "summary": "Database clearing failed.",
+                "detail": str(e),
+            },
+        )
+
+
+@router.post("/db/reset", response_model=APIResponse)
+async def db_reset(
+    role=Depends(get_role),
+):
+    whitelist_check(role, ["admin"])
+    try:
+        logger.debug("Received request to db/reset model.")
+
+        db_helper.reset_db()
+
+        return APIResponse(success=True, message="Database reset successfully.")
+
+    except Exception as e:
+        logger.error(f"Database resetting failed: {str(e)}")
+
+        return APIResponse(
+            success=False,
+            message="Database resetting failed.",
+            errors={
+                "field": "Unknown",
+                "summary": "Database resetting failed.",
                 "detail": str(e),
             },
         )

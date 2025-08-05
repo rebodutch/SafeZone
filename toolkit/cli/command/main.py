@@ -80,10 +80,12 @@ db_app = typer.Typer(help="Database control commands (init, clear, reset_id).")
 
 
 @db_app.command()
-def init():
+def init(
+    force: bool = typer.Option(False, "--force", help="Force re-initialize the database.")
+):
     """Initialize the covid data in the database."""
     try:
-        resp = DBClient(trace_id).init()
+        resp = DBClient(trace_id).init(force=force)
         rich.print(resp)
     except Exception as e:
         rich.print(f"[DB Init fail] {e}")
@@ -91,11 +93,7 @@ def init():
 
 
 @db_app.command()
-def clear(
-    resetid: bool = typer.Option(
-        False, "--resetid", help="Reset primary key auto-increment."
-    )
-):
+def clear():
     """Clear the covid data in the database."""
     if not typer.confirm("Are you sure you want to clear the database?"):
         rich.print("Aborted.")
@@ -103,10 +101,24 @@ def clear(
     try:
         resp = DBClient(trace_id).clear()
         rich.print(resp)
-        if resetid:
-            rich.print(DBClient(trace_id).reset())
     except Exception as e:
         rich.print(f"[DB Clear fail] {e}")
+        raise typer.Exit(1)
+
+
+@db_app.command()
+def reset():
+    """Reset the database to its initial state."""
+    if not typer.confirm("Are you sure you want to reset the database?"):
+        rich.print("Aborted.")
+        raise typer.Abort()
+    try:
+        resp = DBClient(trace_id).reset()
+        rich.print("clear all data in db including administrative data and covid data")
+        rich.print("re-initialize the database with administrative data")
+        rich.print(resp)
+    except Exception as e:
+        rich.print(f"[DB Reset fail] {e}")
         raise typer.Exit(1)
 
 
@@ -305,6 +317,7 @@ def verify(
     except Exception as e:
         rich.print(f"[Verify fail] {e}")
         raise typer.Exit(1)
+
 
 app.add_typer(dataflow_app, name="dataflow")
 
