@@ -8,7 +8,7 @@ import json
 import logging
 
 # Third-party imports
-from sqlalchemy import create_engine, select  # type: ignore
+from sqlalchemy import create_engine, select, func  # type: ignore
 from sqlalchemy.orm import Session  # type: ignore
 from sqlalchemy.sql import text  # type: ignore
 
@@ -39,9 +39,34 @@ def reset_db_id():
         session.commit()
 
 
+def reset_db():
+    """
+    Reset the database.
+
+    This function will clear all data in the database and
+    reinitialize it with the administrative and population data.
+    """
+    # init the session
+    engine = create_engine(DB_URL)
+    # Create all tables
+    metadata.create_all(engine)
+
+    with Session(engine) as session:
+        # Using TRUNCATE with CASCADE to handle foreign keys and RESTART IDENTITY to reset all sequences.
+        # The order of tables in TRUNCATE doesn't matter as much as with DELETE.
+        session.execute(
+            text(
+                "TRUNCATE TABLE cities, regions, populations, covid_cases RESTART IDENTITY CASCADE;"
+            )
+        )
+        session.commit()
+
+    init_db()
+
+
 def clear_db():
     """
-    Clear the database.
+    Clear the covid data in database.
 
     """
     # init the session
@@ -50,16 +75,11 @@ def clear_db():
     metadata.create_all(engine)
 
     with Session(engine) as session:
-        # Delete all data in the tables
-        # the delete squences are important, because of the foreign key constraints
-        session.execute(covid_cases.delete())
-        session.execute(populations.delete())
-        session.execute(regions.delete())
-        session.execute(cities.delete())
+        session.execute(text("TRUNCATE TABLE covid_cases RESTART IDENTITY CASCADE;"))
         session.commit()
 
 
-def init_db():
+def init_db(force: bool = False):
     """
     Initialize the database with the taiwan administrative data and population data.
 
@@ -68,6 +88,28 @@ def init_db():
     engine = create_engine(DB_URL)
     # Create all tables
     metadata.create_all(engine)
+
+    # check if the cities table already has data
+    with Session(engine) as session:
+        # Safety check: see if the cities table already has data.
+        city_count = session.execute(select(func.count(cities.c.id))).scalar_one()
+        if city_count > 0:
+            if not force:
+                logger.warning(
+                    "Database already contains dimensional data. Use --force to re-initialize."
+                )
+                return
+            # if force is True, clear the all data
+            logger.info("Database already contains dimensional data. clearing it...")
+
+            session.execute(
+                text(
+                    "TRUNCATE TABLE cities, regions, populations, covid_cases RESTART IDENTITY CASCADE;"
+                )
+            )
+            session.commit()
+
+    logger.info("Initializing database with administrative and population data...")
 
     # Load administrative data of Taiwan
     init_administrative_data(engine)

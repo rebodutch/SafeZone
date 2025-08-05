@@ -8,8 +8,19 @@ import requests  # type: ignore
 from pathlib import Path  # type: ignore
 from pydantic import BaseModel  # type: ignore
 
-from utils.pydantic_model.request import SimulateModel, VerifyModel, SetTimeModel, HealthCheckModel
-from utils.pydantic_model.response import APIResponse, SystemDateResponse, MocktimeStatusResponse, AnalyticsAPIResponse
+from utils.pydantic_model.request import (
+    SimulateModel,
+    VerifyModel,
+    SetTimeModel,
+    HealthCheckModel,
+    DBInitModel,
+)
+from utils.pydantic_model.response import (
+    APIResponse,
+    SystemDateResponse,
+    MocktimeStatusResponse,
+    AnalyticsAPIResponse,
+)
 from config.settings import RELAY_URL, RELAY_TIMEOUT
 from config.settings import TOKEN_FILE, CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN
 
@@ -111,7 +122,7 @@ class DataflowClient(BaseAuthClient):
             method="POST",
             path="dataflow/simulate",
             payload=kwargs,
-            request_model=SimulateModel
+            request_model=SimulateModel,
         )
 
     def verify(self, **kwargs):
@@ -126,7 +137,9 @@ class DataflowClient(BaseAuthClient):
 
 class TimeClient(BaseAuthClient):
     def now(self):
-        return self.auth_request(method="GET", path="system/time/now", response_model=SystemDateResponse)
+        return self.auth_request(
+            method="GET", path="system/time/now", response_model=SystemDateResponse
+        )
 
     def set(self, **kwargs):
         return self.auth_request(
@@ -137,7 +150,11 @@ class TimeClient(BaseAuthClient):
         )
 
     def get_status(self):
-        return self.auth_request(method="GET", path="system/time/status", response_model=MocktimeStatusResponse)
+        return self.auth_request(
+            method="GET",
+            path="system/time/status",
+            response_model=MocktimeStatusResponse,
+        )
 
 
 class HealthClient(BaseAuthClient):
@@ -151,8 +168,16 @@ class HealthClient(BaseAuthClient):
 
 
 class DBClient(BaseAuthClient):
-    def init(self):
-        return self.auth_request(method="POST", path="db/init")
+    def init(self, force: bool = False):
+        return self.auth_request(
+            method="POST",
+            path="db/init",
+            payload=DBInitModel(force=force).model_dump(mode="json"),
+            request_model=DBInitModel,
+        )
 
     def clear(self):
         return self.auth_request(method="POST", path="db/clear")
+
+    def reset(self):
+        return self.auth_request(method="POST", path="db/reset")
