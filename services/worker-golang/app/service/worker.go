@@ -32,32 +32,29 @@ func (w *Worker) Run(ctx context.Context) error {
 	w.Logger.Info(ctx, "Starting worker", zap.String("event", "Worker started"))
 
 	for {
-		idleCtx, cancel := context.WithTimeout(ctx, w.Config.IdleTimeout)
-
-		event, err := w.Source.GetEvent(idleCtx)
+		event, err := w.Source.GetEvent(ctx)
 
 		if err == context.Canceled {
 			w.Logger.Info(ctx, "Event source context canceled, stopping worker")
 			w.Source.Close(ctx)
-			cancel()
-			return nil
-		} else if err == context.DeadlineExceeded {
-			w.Logger.Info(ctx, "Event source context deadline exceeded, stopping worker")
-			w.Source.Close(ctx)
-			cancel()
+
 			return nil
 		} else if err != nil {
 			w.Logger.Error(ctx, "Failed to get event from source", zap.Error(err))
 			w.Source.Close(ctx)
-			cancel()
+
 			return err
 		}
 
 		// if the event can't pass validation, skip it
 		// future: we add the bad event to a dead-letter queue
 		if w.Validator != nil && !w.Validator.Validate(ctx, *event) {
+			w.Logger.Warn(ctx, "An event validation failed, skipping event",
+				zap.String("event", "Event validation failed"))
 			continue
 		}
+
+		// if the event is valid, add trace to the context for logging
 		ctx = context.WithValue(ctx, "trace_id", event.TraceID)
 
 		w.Logger.Info(ctx, "Received event from source",
@@ -68,7 +65,7 @@ func (w *Worker) Run(ctx context.Context) error {
 		// 1. buffer size reaches BatchSize
 		// 2. the time since last flush exceeds FlushInterval
 		if len(buffer) >= w.Config.BatchSize || time.Since(lastFlush) > w.Config.FlushInterval {
-			err = w.Sink.Flush(idleCtx, buffer)
+			err = w.Sink.Flush(ctx, buffer)
 
 			w.Logger.Info(ctx, "Worker flushing events",
 				zap.Int("buffer_size", len(buffer)),
@@ -80,19 +77,11 @@ func (w *Worker) Run(ctx context.Context) error {
 				if len(buffer) > 0 {
 					_ = w.Sink.Flush(ctx, buffer)
 				}
-				cancel()
-				return nil
-			} else if err == context.DeadlineExceeded {
-				w.Logger.Info(ctx, "Event sink context deadline exceeded, stopping worker")
-				// flush the remaining events
-				if len(buffer) > 0 {
-					_ = w.Sink.Flush(ctx, buffer)
-				}
-				cancel()
+
 				return nil
 			} else if err != nil {
 				w.Logger.Error(ctx, "Failed to flush events", zap.Error(err))
-				cancel()
+
 				return err
 			}
 			buffer = buffer[:0]
