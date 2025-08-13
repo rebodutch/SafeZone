@@ -3,7 +3,8 @@ import requests # type: ignore
 import redis # type: ignore
 import psycopg2 # type: ignore
 
-from config.settings import REDIS_HOST, DB_URL, REPLICA_URL
+from config.settings import REDIS_HOST, REDIS_PORT, CACHE_HOST, CACHE_PORT
+from config.settings import DB_URL, REPLICA_URL
 from config.settings import SIMULATOR_URL, INGESTOR_URL, ANALYTICS_API_URL, DASHBOARD_URL, MKDOC_URL
 
 
@@ -15,6 +16,8 @@ def get_health(target: str=None, all: bool=False):
         result += "db: success\n" if _check_db() else "db: fail\n"
     if all or target == "redis":
         result += "redis: success\n" if _check_redis() else "redis: fail\n"
+    if all or target == "cache":
+        result += "cache: success\n" if _check_cache() else "cache: fail\n"
     if all or target == "data-simulator":
         result += "data simulator: success\n" if _check_core(service="data-simulator") else "data simulator: fail\n"
     if all or target == "data-ingestor":
@@ -40,13 +43,21 @@ def _check_db():
     
 def _check_redis():
     try:
-        r = redis.StrictRedis(host=REDIS_HOST, port=6379, decode_responses=True)
+        r = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
         if not r.ping():
             return False
     except redis.ConnectionError:
         return False
     return True
 
+def _check_cache():
+    try:
+        r = redis.StrictRedis(host=CACHE_HOST, port=CACHE_PORT, decode_responses=True)
+        if not r.ping():
+            return False
+    except redis.ConnectionError:
+        return False
+    return True
 
 def _check_core(service):
     if service == "data-simulator":

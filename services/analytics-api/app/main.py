@@ -1,4 +1,5 @@
 # app/main.py
+import asyncio
 import uuid
 import logging
 from contextlib import asynccontextmanager
@@ -14,7 +15,7 @@ from api.endpoints import router
 from config.settings import SERVER_IP, SERVER_PORT, SERVICE_NAME, SERVICE_VERSION
 from config.settings import LOG_LEVEL, DB_URL
 from exceptions.handlers import register_exception_handlers
-from config.cache import get_city_region_cache, get_populations_cache, get_redis_client
+from config.cache import get_city_region_cache, get_populations_cache, get_redis_client, poll_cache_version
 
 
 @asynccontextmanager
@@ -22,11 +23,18 @@ async def lifespan(app: FastAPI):
     engine = create_engine(DB_URL)
     app.state.engine = engine
     app.state.Session = sessionmaker(bind=engine)
-    app.state.redis_client = await get_redis_client()
+    app.state.cache_client = await get_redis_client("redis-cache")
+    app.state.redis_client = await get_redis_client("redis-state")
     app.state.city_region_cache = get_city_region_cache(app.state.Session)
     app.state.populations_cache = get_populations_cache(app.state.Session)
+    
+    # Start the cache version poller
+    app.state.cache_version = str(uuid.uuid4())
+    poller_task = asyncio.create_task(poll_cache_version(app.state))
+
     yield
     # Cleanup
+    poller_task.cancel()
     engine.dispose()
 
 

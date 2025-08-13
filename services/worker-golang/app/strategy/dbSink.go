@@ -34,21 +34,36 @@ func (d *DBSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 		return txErr
 	}
 
+	collisionCheck := make(map[string]bool)
 	// building the SQL query for batch insert
 	sql := "INSERT INTO covid_cases (date, city_id, region_id, cases) VALUES "
 	args := make([]any, 0)
 	for i, e := range batch {
-		if i > 0 {
-			sql += ","
-		}
 		// the exist checking already done in validator, so we can safely assume city and region exist
 		cityID := d.cache.GetCityID(e.Payload.City)
 		regionID := d.cache.GetRegionID(cityID, e.Payload.Region)
+		date := e.Payload.Date
 
+		// check collision in batch buffer
+		collisionKey := fmt.Sprintf("%s:%d:%d", date, cityID, regionID)
+		if collisionCheck[collisionKey] {
+			d.Logger.Warn(ctx, "Duplicate event found in batch",
+				zap.String("date", date),
+				zap.Int("city_id", cityID),
+				zap.Int("region_id", regionID))
+			continue
+		}
+		collisionCheck[collisionKey] = true
+
+		if i > 0 {
+			sql += ","
+		}
 		sql += fmt.Sprintf("($%d, $%d, $%d, $%d)", i*4+1, i*4+2, i*4+3, i*4+4)
-		args = append(args, e.Payload.Date, cityID, regionID, e.Payload.Cases)
+		args = append(args, date, cityID, regionID, e.Payload.Cases)
 	}
 	sql += " ON CONFLICT (date, city_id, region_id) DO UPDATE SET cases=EXCLUDED.cases"
+
+	d.Logger.Debug(ctx, "Executing batch insert", zap.String("sql", sql), zap.Any("args", args))
 
 	// executing the batch insert
 	_, execErr := tx.ExecContext(ctx, sql, args...)
