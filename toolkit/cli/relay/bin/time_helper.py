@@ -4,7 +4,6 @@ import requests  # type: ignore
 from config.settings import TIME_SERVER_URL
 from utils.pydantic_model.request import SetTimeModel
 
-
 def get_system_date():
     response = requests.get(url=f"{TIME_SERVER_URL}/now")
     response.raise_for_status()  # Raise an error for bad responses

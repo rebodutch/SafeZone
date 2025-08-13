@@ -18,7 +18,6 @@ type Config struct {
 	// batch processing configuration
 	BatchSize     int
 	FlushInterval time.Duration
-	IdleTimeout   time.Duration
 	// parallel processing configuration
 	WorkerCount int // number of workers
 	ParallelN   int // number of parallel workers at a time
@@ -43,7 +42,6 @@ func Load() (*Config, error) {
 	serviceVersion := getEnv("SERVICE_VERSION", "0.1.0")
 	// batch processing configuration
 	batchSize := getNumEnv("BATCH_SIZE", 5)
-	idleTimeout := getDurationEnv("IDLE_TIMEOUT", 5*time.Second)
 	flushInterval := getDurationEnv("FLUSH_INTERVAL", 1*time.Second)
 	// parallel processing configuration
 	workerCount := getNumEnv("WORKER_COUNT", 1)
@@ -62,7 +60,6 @@ func Load() (*Config, error) {
 		ServiceVersion: serviceVersion,
 		BatchSize:      batchSize,
 		FlushInterval:  flushInterval,
-		IdleTimeout:    idleTimeout,
 		WorkerCount:    workerCount,
 		ParallelN:      parallelN,
 		KafkaBroker:    kafkaBroker,
