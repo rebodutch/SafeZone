@@ -1,6 +1,5 @@
 services:
-
-# profiles: [infra], core, (seeding) ui
+  # profiles: [infra], core, (seeding) ui
 
   db:
     image: postgres:16
@@ -19,9 +18,8 @@ services:
       retries: 5
     profiles:
       - infra
-  
+
   redis-state:
-    container_name: redis-state
     image: bitnami/redis:7.4.3-debian-12-r0
     environment:
       - REDIS_PASSWORD=5566
@@ -34,9 +32,8 @@ services:
       retries: 5
     profiles:
       - infra
-  
+
   redis-cache:
-    container_name: redis-cache
     image: bitnami/redis:7.4.3-debian-12-r0
     environment:
       - REDIS_PASSWORD=5566
@@ -98,6 +95,12 @@ services:
       - DB_URL=postgresql://postgres:password@db:5432/safezone
       - REPLICA_URL=postgresql://postgres:password@db:5432/safezone # Use the same database for simplicity
       - REDIS_HOST=redis-state
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5566
+      - REDIS_DB=0
+      - CACHE_HOST=redis-cache
+      - CACHE_PORT=6379
+      - CACHE_PASSWORD=5566
       - SIMULATOR_URL=http://pandemic-simulator:8000
       - INGESTOR_URL=http://data-ingestor:8000
       - ANALYTICS_API_URL=http://analytics-api:8000
@@ -108,13 +111,10 @@ services:
       - LOG_LEVEL=INFO
     ports:
       - "8000:8000"
-    depends_on:
-      - db
-      - time-server
     profiles:
-      - infra
-      
-# profiles: infra, [core], (seeding) ui
+      - cli
+
+  # profiles: infra, [core], (seeding) ui
 
   data-ingestor:
     image: safezone-data-ingestor:latest
@@ -131,7 +131,7 @@ services:
   pandemic-simulator:
     image: safezone-pandemic-simulator:latest
     volumes:
-      - ../../services/pandemic-simulator/data:/data
+      - ../../data/smoke-test:/data
     env_file:
       - ../../services/pandemic-simulator/.env.example
     environment:
@@ -141,20 +141,20 @@ services:
       - LOG_LEVEL=INFO
     profiles:
       - core
-  
+
   worker-golang:
     image: safezone-worker:latest
     env_file:
       - ../../services/worker-golang/.env.example
     environment:
       - ENVIRONMENT=DEV
-      - LOG_LEVEL=INFO
-      - IDLE_TIMEOUT=86400s
       - BATCH_SIZE=100
+      - FLUSH_INTERVAL=10s
       - KAFKA_BROKER=kafka:9092
       - KAFKA_GROUP_ID=worker-group
       - KAFKA_TOPIC=covid.case.data
       - DB_URL=postgres://postgres:password@db:5432/safezone
+      - LOG_LEVEL=INFO
     profiles:
       - core
 
@@ -165,15 +165,20 @@ services:
     environment:
       - ENVIRONMENT=DEV
       - DB_URL=postgresql://postgres:password@db:5432/safezone
-      - REDIS_HOST=redis-cache
+      - REDIS_HOST=redis-state
       - REDIS_PORT=6379
       - REDIS_PASSWORD=5566
       - REDIS_DB=0
+      - POLL_CACHE_VERSION_INTERVAL=1
+      - CACHE_HOST=redis-cache
+      - CACHE_PORT=6379
+      - CACHE_PASSWORD=5566
+      - CACHE_DB=0
       - LOG_LEVEL=INFO
     profiles:
       - core
 
-# profiles: infra, core, (seeding) [ui]
+  # profiles: infra, core, (seeding) [ui]
 
   dashboard:
     image: safezone-dashboard:latest
@@ -188,4 +193,3 @@ services:
       - LOG_LEVEL=INFO
     profiles:
       - ui
- 
