@@ -17,7 +17,7 @@ import bin.health_helper as health_helper
 import bin.service_helper as service_helper
 from utils.pydantic_model.request import SimulateModel, SetTimeModel, DBInitModel
 from utils.pydantic_model.request import VerifyModel, HealthCheckModel
-from utils.pydantic_model.response import APIResponse, AnalyticsAPIResponse
+from utils.pydantic_model.response import APIResponse, HealthResponse, AnalyticsAPIResponse
 from utils.pydantic_model.response import SystemDateResponse, MocktimeStatusResponse
 from config.settings import CLIENT_ID, ROLE_MAP
 
@@ -147,7 +147,7 @@ async def verify(
 
 
 # ---- System Request ----
-@router.get("/system/health", response_model=APIResponse)
+@router.get("/system/health", response_model=HealthResponse)
 async def get_health(
     target: str = None,
     all: bool = False,
@@ -160,14 +160,19 @@ async def get_health(
         # Validate the parameters using Pydantic model
         _ = HealthCheckModel(target=target, all=all)
 
-        response_json = health_helper.get_health(target=target, all=all)
+        health_message = health_helper.get_health(target=target, all=all)
 
-        return APIResponse(**response_json)
+        return HealthResponse(
+            success=True,
+            message="Health check completed successfully.",
+            status=health_message
+        )
     except Exception as e:
         logger.error(f"System/health execute failed: {str(e)}")
-        return APIResponse(
+        return HealthResponse(
             success=False,
             message="System/health execute failed.",
+            status="health checking failed.",
             errors={
                 "field": "Unknown",
                 "summary": "System/health execute failed.",

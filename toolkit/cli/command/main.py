@@ -216,8 +216,8 @@ def all():
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
-
-        rich.print(HealthClient(trace_id).check(all=True))
+        reps = HealthClient(trace_id).check(all=True)
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
@@ -229,8 +229,8 @@ def cli_relay():
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
-
-        rich.print(HealthClient(trace_id).check(target="cli-relay"))
+        reps = HealthClient(trace_id).check(target="cli-relay")
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
@@ -242,47 +242,63 @@ def db():
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
-
-        rich.print(HealthClient(trace_id).check(target="db"))
+        reps = HealthClient(trace_id).check(target="db")
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
 
 
-@health_app.command("redis")
-def redis():
+@health_app.command("redis-state")
+def redis_state():
     try:
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
-
-        rich.print(HealthClient(trace_id).check(target="redis"))
+        reps = HealthClient(trace_id).check(target="redis-state")
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
 
 
-@health_app.command("data-simulator")
-def data_simulator():
+@health_app.command("redis-cache")
+def redis_cache():
     try:
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
 
-        rich.print(HealthClient(trace_id).check(target="data-simulator"))
+        reps = HealthClient(trace_id).check(target="redis-cache")
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
 
 
-@health_app.command("data-ingestor")
-def data_ingestor():
+@health_app.command("simulator")
+def simulator():
     try:
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
 
-        rich.print(HealthClient(trace_id).check(target="data-ingestor"))
+        reps = HealthClient(trace_id).check(target="simulator")
+        rich.print(reps["status"])
+    except Exception as e:
+        rich.print(f"[Health check fail] {e}")
+        raise typer.Exit(1)
+
+
+@health_app.command("ingestor")
+def ingestor():
+    try:
+        rich.print(
+            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+        )
+
+        reps = HealthClient(trace_id).check(target="ingestor")
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
@@ -294,8 +310,8 @@ def analytics_api():
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
-
-        rich.print(HealthClient(trace_id).check(target="analytics-api"))
+        reps = (HealthClient(trace_id).check(target="analytics-api"))
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
@@ -307,24 +323,24 @@ def dashboard():
         rich.print(
             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
         )
-
-        rich.print(HealthClient(trace_id).check(target="dashboard"))
+        reps = (HealthClient(trace_id).check(target="dashboard"))
+        rich.print(reps["status"])
     except Exception as e:
         rich.print(f"[Health check fail] {e}")
         raise typer.Exit(1)
 
 
-@health_app.command("mkdoc")
-def mkdoc():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
+# @health_app.command("mkdoc")
+# def mkdoc():
+#     try:
+#         rich.print(
+#             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
+#         )
 
-        rich.print(HealthClient(trace_id).check(target="mkdoc"))
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+#         rich.print(HealthClient(trace_id).check(target="mkdoc"))
+#     except Exception as e:
+#         rich.print(f"[Health check fail] {e}")
+#         raise typer.Exit(1)
 
 
 system_app.add_typer(health_app, name="health")

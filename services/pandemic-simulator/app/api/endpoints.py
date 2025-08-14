@@ -12,13 +12,9 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthResponse)
 async def health_check():
-    return HealthResponse(
-        success=True,
-        message="API is running",
-        data={"detail": "The API is running smoothly."},
-    )
+    return HealthResponse(success=True, message="Service is healthy.", status="healthy")
 
 
 @router.get("/simulate/daily", response_model=APIResponse)

@@ -22,16 +22,9 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthResponse)
 async def health_check():
-    """
-    Health check endpoint to verify if the API is running.
-    """
-    return HealthResponse(
-        success=True,
-        message="Safezone Analytics API is running",
-        detail="The API is operational and ready to handle requests.",
-    )
+    return HealthResponse(success=True, message="Service is healthy.", status="healthy")
 
 
 @router.get("/cases/region", response_model=AnalyticsAPIResponse)

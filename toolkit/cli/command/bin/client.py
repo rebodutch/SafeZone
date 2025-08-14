@@ -17,6 +17,7 @@ from utils.pydantic_model.request import (
 )
 from utils.pydantic_model.response import (
     APIResponse,
+    HealthResponse,
     SystemDateResponse,
     MocktimeStatusResponse,
     AnalyticsAPIResponse,
@@ -164,6 +165,7 @@ class HealthClient(BaseAuthClient):
             path="system/health",
             params=kwargs,
             request_model=HealthCheckModel,
+            response_model=HealthResponse,
         )
 
 
