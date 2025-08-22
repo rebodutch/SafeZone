@@ -8,27 +8,26 @@ from config.settings import DB_URL, REPLICA_URL
 from config.settings import SIMULATOR_URL, INGESTOR_URL, ANALYTICS_API_URL, DASHBOARD_URL, MKDOC_URL
 
 
-def get_health(target: str=None, all: bool=False):
-    result = ""
+def get_health(target: str="all"):
+    status = {}
+    all = (target == "all")
     if all or target == "cli-relay":
-        result += "cli-relay: success\n" 
+        status["cli-relay"] = "healthy"
     if all or target == "db":
-        result += "db: success\n" if _check_db() else "db: fail\n"
+        status["db"] = "healthy" if _check_db() else "unhealthy"
     if all or target == "redis-state":
-        result += "redis-state: success\n" if _check_redis() else "redis-state: fail\n"
+        status["redis-state"] = "healthy" if _check_redis() else "unhealthy"
     if all or target == "redis-cache":
-        result += "redis-cache: success\n" if _check_cache() else "redis-cache: fail\n"
+        status["redis-cache"] = "healthy" if _check_cache() else "unhealthy"
     if all or target == "simulator":
-        result += "simulator: success\n" if _check_core(service="simulator") else "simulator: fail\n"
+        status["simulator"] = "healthy" if _check_core(service="simulator") else "unhealthy"
     if all or target == "ingestor":
-        result += "ingestor: success\n" if _check_core(service="ingestor") else "ingestor: fail\n"
+        status["ingestor"] = "healthy" if _check_core(service="ingestor") else "unhealthy"
     if all or target == "analytics-api":
-        result += "analytics api: success\n" if _check_core(service="analytics-api") else "analytics api: fail\n"
+        status["analytics-api"] = "healthy" if _check_core(service="analytics-api") else "unhealthy"
     if all or target == "dashboard":
-        result += "dashboard: success\n" if _check_ui(service="dashboard") else "dashboard: fail\n"
-    # if all or target == "mkdoc":
-    #     result += "mkdoc: success\n" if _check_ui(service="mkdoc") else "mkdoc: fail\n"
-    return result[:-1]
+        status["dashboard"] = "healthy" if _check_ui(service="dashboard") else "unhealthy"
+    return status
 
 def _check_db():
     try:

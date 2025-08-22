@@ -150,7 +150,6 @@ async def verify(
 @router.get("/system/health", response_model=HealthResponse)
 async def get_health(
     target: str = None,
-    all: bool = False,
     role=Depends(get_role),
 ):
     whitelist_check(role, ["admin", "user"])
@@ -158,9 +157,9 @@ async def get_health(
         logger.debug("Received request to system/health model.")
 
         # Validate the parameters using Pydantic model
-        _ = HealthCheckModel(target=target, all=all)
+        _ = HealthCheckModel(target=target)
 
-        health_message = health_helper.get_health(target=target, all=all)
+        health_message = health_helper.get_health(target=target)
 
         return HealthResponse(
             success=True,

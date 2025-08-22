@@ -1,6 +1,7 @@
 # /bin/client.py
 import time
 import json
+import uuid
 import logging
 from typing import Optional
 
@@ -24,14 +25,14 @@ from utils.pydantic_model.response import (
 )
 from config.settings import RELAY_URL, RELAY_TIMEOUT
 from config.settings import TOKEN_FILE, CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN
+from bin.context import global_context
 
 logger = logging.getLogger(__name__)
 
 
 class BaseAuthClient:
-    def __init__(self, trace_id: str):
+    def __init__(self):
         self._refresh_token()
-        self.trace_id = trace_id
 
     def _refresh_token(self) -> str:
         logger.debug("Refreshing authentication token...")
@@ -77,7 +78,7 @@ class BaseAuthClient:
         # generate the authentication header
         header["Authorization"] = f"Bearer {self._get_id_token()}"
         # generate the trace header
-        header["X-Trace-ID"] = self.trace_id
+        header["X-Trace-ID"] = global_context.get("trace_id", str(uuid.uuid4()))
         return header
 
     def auth_request(

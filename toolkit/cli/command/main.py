@@ -6,352 +6,176 @@ import logging
 import typer  # type: ignore
 import rich  # type: ignore
 
+from utils.logging.baselogger import setup_logger
+
+from config.settings import TOOL_NAME, TOOL_VERSION
 from bin.client import DataflowClient, DBClient, HealthClient, TimeClient
+from bin.context import global_context
+from bin.command import command_handler
 
 app = typer.Typer(
     help="SafeZone CLI tool to control Dataflow, DB, and System operations.",
     pretty_exceptions_enable=False,
 )
-logger = logging.getLogger(__name__)
-trace_id = str(uuid.uuid4())
 
 
 # ---- Callback Functions ----
 @app.callback()
 def main(
-    debug: bool = typer.Option(
-        False,
-        "--debug",
-        "-d",
-        help="Enable debug mode for more verbose output.",
+    debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug logging."),
+    log_level: str = typer.Option(
+        "WARNING", "--log-level", "-l", help="Set the logging level."
     ),
-    logfile: str = typer.Option(
-        None,
-        "--logfile",
-        "-l",
-        help="Specify a log file to write logs to.",
+    log_output: str = typer.Option(
+        "stderr", "--log-output", help="Set the logging output."
+    ),
+    output_format: str = typer.Option(
+        "rich", "--output", "-o", help="Set the output format."
     ),
 ):
-    handlers = []
-    if debug or logfile is not None:
-        # Set up logging handlers
-        handlers.append(logging.StreamHandler(sys.stderr))
-        if logfile:
-            file_handler = logging.handlers.RotatingFileHandler(
-                logfile,
-                mode="a+",
-                maxBytes=1 * 1024 * 1024,
-                backupCount=3,
-                encoding="utf-8",
-            )
-            handlers.append(file_handler)
+    # set context
+    global_context.set("trace_id", str(uuid.uuid4()))
+    global_context.set("output_format", output_format)
 
-        if not logging.getLogger().hasHandlers():
-            logging.basicConfig(
-                level=logging.DEBUG,
-                handlers=handlers,
-            )
+    # setup logger
+    if debug:
+        log_level = "DEBUG"
 
-        class TraceIdFilter(logging.Filter):
-            def filter(self, record):
-                record.trace_id = trace_id
-                return True
+    setup_logger(
+        log_level=log_level,
+        log_output=log_output,
+        service_name=TOOL_NAME,
+        service_version=TOOL_VERSION,
+    )
 
-        logging.getLogger().addFilter(TraceIdFilter())
 
-        class SafeTraceFormatter(logging.Formatter):
-            def format(self, record):
-                if not hasattr(record, "trace_id"):
-                    record.trace_id = trace_id
-                return super().format(record)
+# ---- General Commands ----
+@app.command("version")
+def version():
+    """Show the version information."""
+    pass
 
-        # Use SafeTraceFormatter to include trace_id in log messages
-        formatter = SafeTraceFormatter(
-            "[%(trace_id)s] %(asctime)s %(levelname)s %(name)s %(message)s"
-        )
-        for handler in handlers:
-            handler.setFormatter(formatter)
 
-        rich.print("[bold yellow]Debug mode enabled.[/bold yellow]")
+@app.command("config")
+def config():
+    """Show the configuration information."""
+    pass
 
 
 # ---- Database Commands ----
-db_app = typer.Typer(help="Database control commands (init, clear, reset_id).")
+db_app = typer.Typer(help="Database control commands (init, clear, reset).")
 
 
 @db_app.command()
+@command_handler("db.init")
 def init(
     force: bool = typer.Option(
         False, "--force", help="Force re-initialize the database."
-    )
+    ),
 ):
     """Initialize the covid data in the database."""
-    try:
-
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        resp = DBClient(trace_id).init(force=force)
-        rich.print(resp)
-    except Exception as e:
-        rich.print(f"[DB Init fail] {e}")
-        raise typer.Exit(1)
+    return DBClient().init(force=force)
 
 
 @db_app.command()
+@command_handler("db.clear")
 def clear():
     """Clear the covid data in the database."""
     if not typer.confirm("Are you sure you want to clear the database?"):
         rich.print("Aborted.")
         raise typer.Abort()
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        resp = DBClient(trace_id).clear()
-        rich.print(resp)
-    except Exception as e:
-        rich.print(f"[DB Clear fail] {e}")
-        raise typer.Exit(1)
+
+    return DBClient().clear()
 
 
 @db_app.command()
+@command_handler("db.reset")
 def reset():
     """Reset the database to its initial state."""
     if not typer.confirm("Are you sure you want to reset the database?"):
         rich.print("Aborted.")
         raise typer.Abort()
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        resp = DBClient(trace_id).reset()
-        rich.print("clear all data in db including administrative data and covid data")
-        rich.print("re-initialize the database with administrative data")
-        rich.print(resp)
-    except Exception as e:
-        rich.print(f"[DB Reset fail] {e}")
-        raise typer.Exit(1)
+    
+    return DBClient().reset()
 
 
 app.add_typer(db_app, name="db")
 
-# ---- System Commands ----
-system_app = typer.Typer(help="System control commands (time control, health check).")
-
-# -- Time Commands --
-time_app = typer.Typer(help="Time control commands.")
-
-
-@time_app.command("now")
-def now():
-    """Get the current system time."""
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        rich.print(TimeClient(trace_id).now())
-    except Exception as e:
-        rich.print(f"[Time now fail] {e}")
-        raise typer.Exit(1)
-
-
-@time_app.command("set")
-def set(
-    reset: bool = typer.Option(
-        False, "--reset", help="Reset the system time to real time."
-    ),
-    mock_date: str = typer.Option(None, "--mockdate", help="Mock date (YYYY-MM-DD)"),
-    acceleration: int = typer.Option(
-        None, "--acceleration", help="Time acceleration rate"
-    ),
-):
-    """Set the system mock_date or acceleration."""
-    mock = False if reset else True
-
-    # Check if both mock_date and acceleration are None
-    if mock and not mock_date and not acceleration:
-        rich.print(
-            "[bold red]Error:[/bold red] You must specify either --mockdate or --acceleration."
-        )
-        raise typer.Exit(1)
-
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        rich.print(
-            TimeClient(trace_id).set(
-                mock=mock, mock_date=mock_date, acceleration=acceleration
-            )
-        )
-    except Exception as e:
-        rich.print(f"[Time set fail] {e}")
-        raise typer.Exit(1)
-
-
-@time_app.command("status")
-def status():
-    """Get current time management status."""
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-
-        rich.print(TimeClient(trace_id).get_status())
-    except Exception as e:
-        rich.print(f"[Time status fail] {e}")
-        raise typer.Exit(1)
-
-
-system_app.add_typer(time_app, name="time")
-
-# -- Time Commands --
+# -- Health Commands --
 health_app = typer.Typer(help="Health check commands.")
 
 
 @health_app.command("all")
+@command_handler("health.all")
 def all():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        reps = HealthClient(trace_id).check(all=True)
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of all components."""
+    return HealthClient().check(target="all")
 
 
 @health_app.command("cli-relay")
+@command_handler("health.cli-relay")
 def cli_relay():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        reps = HealthClient(trace_id).check(target="cli-relay")
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the CLI relay component."""
+    return HealthClient().check(target="cli-relay")
 
 
 @health_app.command("db")
+@command_handler("health.db")
 def db():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        reps = HealthClient(trace_id).check(target="db")
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the database component."""
+    return HealthClient().check(target="db")
 
 
 @health_app.command("redis-state")
+@command_handler("health.redis-state")
 def redis_state():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        reps = HealthClient(trace_id).check(target="redis-state")
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the Redis state component."""
+    return HealthClient().check(target="redis-state")
 
 
 @health_app.command("redis-cache")
+@command_handler("health.redis-cache")
 def redis_cache():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-
-        reps = HealthClient(trace_id).check(target="redis-cache")
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the Redis cache component."""
+    return HealthClient().check(target="redis-cache")
 
 
 @health_app.command("simulator")
+@command_handler("health.simulator")
 def simulator():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-
-        reps = HealthClient(trace_id).check(target="simulator")
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the simulator component."""
+    return HealthClient().check(target="simulator")
 
 
 @health_app.command("ingestor")
+@command_handler("health.ingestor")
 def ingestor():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-
-        reps = HealthClient(trace_id).check(target="ingestor")
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the ingestor component."""
+    return HealthClient().check(target="ingestor")
 
 
 @health_app.command("analytics-api")
+@command_handler("health.analytics-api")
 def analytics_api():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        reps = (HealthClient(trace_id).check(target="analytics-api"))
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the analytics API component."""
+    return HealthClient().check(target="analytics-api")
 
 
 @health_app.command("dashboard")
+@command_handler("health.dashboard")
 def dashboard():
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-        reps = (HealthClient(trace_id).check(target="dashboard"))
-        rich.print(reps["status"])
-    except Exception as e:
-        rich.print(f"[Health check fail] {e}")
-        raise typer.Exit(1)
+    """Check the health of the dashboard component."""
+    return HealthClient().check(target="dashboard")
 
 
-# @health_app.command("mkdoc")
-# def mkdoc():
-#     try:
-#         rich.print(
-#             f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-#         )
-
-#         rich.print(HealthClient(trace_id).check(target="mkdoc"))
-#     except Exception as e:
-#         rich.print(f"[Health check fail] {e}")
-#         raise typer.Exit(1)
-
-
-system_app.add_typer(health_app, name="health")
-
-app.add_typer(system_app, name="system")
+app.add_typer(health_app, name="health")
 
 # ---- Dataflow Commands ----
 dataflow_app = typer.Typer(help="Dataflow control commands (simulate, verify).")
 
 
 @dataflow_app.command()
+@command_handler("dataflow.simulate")
 def simulate(
     date: str = typer.Argument(..., help="Start date for simulation (YYYY-MM-DD)"),
     enddate: str = typer.Option(
@@ -360,22 +184,11 @@ def simulate(
     dry_run: bool = typer.Option(False, "--dry-run", help="Dry run mode"),
 ):
     """Simulate covid data for a specific date or interval."""
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-
-        rich.print(
-            DataflowClient(trace_id).simulate(
-                date=date, end_date=enddate, dry_run=dry_run
-            )
-        )
-    except Exception as e:
-        rich.print(f"[Simulate fail] {e}")
-        raise typer.Exit(1)
+    return DataflowClient().simulate(date=date, end_date=enddate, dry_run=dry_run)
 
 
 @dataflow_app.command()
+@command_handler("dataflow.verify")
 def verify(
     date: str = typer.Argument(..., help="Date to verify (YYYY-MM-DD)"),
     interval: int = typer.Option(
@@ -386,22 +199,61 @@ def verify(
     ratio: bool = typer.Option(False, "--ratio", help="Show as ratio (per 10,000)"),
 ):
     """Verify covid data in the database."""
-    try:
-        rich.print(
-            f"the task's trace_id is: {trace_id}，you can use it to trace the task in the log."
-        )
-
-        rich.print(
-            DataflowClient(trace_id).verify(
-                date=date, interval=interval, city=city, region=region, ratio=ratio
-            )
-        )
-    except Exception as e:
-        rich.print(f"[Verify fail] {e}")
-        raise typer.Exit(1)
+    return DataflowClient().verify(
+        date=date, interval=interval, city=city, region=region, ratio=ratio
+    )
 
 
 app.add_typer(dataflow_app, name="dataflow")
+
+# ---- System Commands ----
+system_app = typer.Typer(help="System control commands (time control, health check).")
+
+# -- Time Commands --
+time_app = typer.Typer(help="Time control commands.")
+
+
+@time_app.command("now")
+@command_handler("time.now")
+def now():
+    """Get the current system time."""
+    return TimeClient().now()
+
+
+@time_app.command("set")
+@command_handler("time.set")
+def set(
+    reset: bool = typer.Option(
+        False, "--reset", help="Reset the system time to real time."
+    ),
+    mock_date: str = typer.Option(None, "--mockdate", help="Mock date (YYYY-MM-DD)"),
+    acceleration: int = typer.Option(
+        None, "--acceleration", help="Time acceleration rate"
+    ),
+):
+    """Set the system mock_date or acceleration."""
+    # Check if both mock_date and acceleration are None
+    if mock and not mock_date and not acceleration:
+        rich.print(
+            "[bold red]Error:[/bold red] You must specify either --mockdate or --acceleration."
+        )
+        raise typer.Exit(1)
+
+    mock = False if reset else True
+
+    return TimeClient().set(mock=mock, mock_date=mock_date, acceleration=acceleration)
+
+
+@time_app.command("status")
+@command_handler("time.status")
+def status():
+    """Get current time management status."""
+    return TimeClient().get_status()
+
+
+system_app.add_typer(time_app, name="time")
+app.add_typer(system_app, name="system")
+
 
 if __name__ == "__main__":
     app()

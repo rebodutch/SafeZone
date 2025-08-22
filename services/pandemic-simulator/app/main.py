@@ -5,7 +5,8 @@ import logging
 import uvicorn  # type: ignore
 from fastapi import FastAPI  # type: ignore
 
-from utils.logging.baselogger import setup_logger, trace_id_var
+from utils.logging.baselogger import setup_logger
+from utils.context import trace_id_var
 
 from api.endpoints import router
 from config.settings import SERVER_IP, SERVER_PORT, SERVICE_NAME, SERVICE_VERSION

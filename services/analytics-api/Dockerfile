@@ -24,6 +24,7 @@ COPY services/analytics-api/app /app
 # Copy additional directories
 COPY utils/logging /app/utils/logging
 COPY utils/pydantic_model /app/utils/pydantic_model
+COPY utils/context.py /app/utils/context.py
 COPY utils/db /app/utils/db
 
 ENV PYTHONPATH=/app
