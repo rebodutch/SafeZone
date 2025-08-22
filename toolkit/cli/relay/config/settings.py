@@ -43,6 +43,7 @@ REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)  # Optional, can be None
 # Cache settings
 CACHE_HOST = os.getenv("CACHE_HOST", "localhost")
 CACHE_PORT = int(os.getenv("CACHE_PORT", "6479"))
+CACHE_PASSWORD = os.getenv("CACHE_PASSWORD", None)  # Optional, can be None
 
 # Service settings
 SIMULATOR_URL = get_setted_env("SIMULATOR_URL")

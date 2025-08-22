@@ -24,6 +24,7 @@ COPY services/data-ingestor/app /app
 # Copy additional directories
 COPY utils/logging /app/utils/logging
 COPY utils/pydantic_model /app/utils/pydantic_model
+COPY utils/context.py /app/utils/context.py
 
 ENV PYTHONPATH=/app
 WORKDIR /app

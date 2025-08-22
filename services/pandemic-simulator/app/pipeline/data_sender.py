@@ -6,7 +6,7 @@ import httpx  # type: ignore
 from pydantic import ValidationError  # type: ignore
 
 from utils.pydantic_model.request import CovidDataModel
-from utils.logging.baselogger import trace_id_var
+from utils.context import trace_id_var
 
 from exceptions.custom import ServiceValidationError
 from config.settings import INGESTOR_URL, MAX_CONCURRENT_REQUESTS

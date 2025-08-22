@@ -1,0 +1,7 @@
+szcli_command,jq_path,expected_value
+"dataflow simulate 1970-01-01", ".success", "True"
+"szcli dataflow verify 1970-01-01", ".data.aggregated_cases", 7
+"szcli dataflow verify 1970-01-01 --city=台北市", ".data.aggregated_cases", 7
+"szcli dataflow verify 1970-01-01 --city=台北市 --region=中山區", ".data.aggregated_cases", 2
+"szcli dataflow verify 1970-01-01 --city=台北市 --region=中山區 --ratio", ".data.aggregated_cases", 0.09244
+"szcli dataflow verify 1970-01-01 --city=台中市", ".data.aggregated_cases", 0

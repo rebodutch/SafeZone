@@ -24,6 +24,7 @@ COPY services/dashboard/app /app
 # Copy additional directories
 COPY utils/logging /app/utils/logging
 COPY utils/pydantic_model /app/utils/pydantic_model
+COPY utils/context.py /app/utils/context.py
 COPY utils/geo_data /app/utils/geo_data
 
 ENV PYTHONPATH=/app
