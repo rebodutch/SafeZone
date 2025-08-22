@@ -35,4 +35,4 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     app = create_app()
     logger.info(f"Starting {SERVICE_NAME} version {SERVICE_VERSION}.",  extra={"event": "service_startup"})
-    app.run_server(host=SERVER_IP, port=SERVER_PORT, debug=True)
+    app.run_server(host=SERVER_IP, port=SERVER_PORT)

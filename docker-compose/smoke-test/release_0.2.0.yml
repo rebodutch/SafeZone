@@ -9,8 +9,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: safezone
-    volumes:
-      - ../temp/db_volume:/var/lib/postgresql/data # Use a named volume for persistent storage，it will reduce the seeding time
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
@@ -80,11 +78,8 @@ services:
       - REDIS_PASSWORD=5566
       - REDIS_DB=0
       - LOG_LEVEL=INFO
-    depends_on:
-      redis-state:
-        condition: service_healthy
     profiles:
-      - infra
+      - toolkit
 
   cli-relay:
     image: safezone-cli-relay:latest
@@ -112,7 +107,7 @@ services:
     ports:
       - "8000:8000"
     profiles:
-      - cli
+      - toolkit
 
   # profiles: infra, [core], (seeding) ui
 
@@ -147,7 +142,7 @@ services:
     env_file:
       - ../../services/worker-golang/.env.example
     environment:
-      - ENVIRONMENT=DEV
+      - ENVIRONMENT=STAGING
       - BATCH_SIZE=100
       - FLUSH_INTERVAL=10s
       - KAFKA_BROKER=kafka:9092
@@ -174,7 +169,7 @@ services:
       - CACHE_PORT=6379
       - CACHE_PASSWORD=5566
       - CACHE_DB=0
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=DEBUG # cache log at debug level
     profiles:
       - core
 
