@@ -11,7 +11,9 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
       - name: List all files
         run: ls -R
