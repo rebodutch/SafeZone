@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    return HealthResponse(success=True, message="Service is healthy.", status="healthy")
+    return HealthResponse(success=True, message="Service is healthy.", status={"simulator": "healthy"})
 
 
 @router.get("/simulate/daily", response_model=APIResponse)

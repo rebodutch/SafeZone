@@ -37,5 +37,12 @@ if ! docker ps -q --filter "name=$INSTANCE_NAME" | grep -q .; then
 fi
 
 # 4. Execute CLI command, aligning paths with local environment
-docker exec -it $INSTANCE_NAME szcli "$@"
+if [ -t 0 ]; then
+  # if interactive terminal 
+  DOCKER_FLAGS="-it"
+else
+  DOCKER_FLAGS="-i"
+fi
+
+docker exec $DOCKER_FLAGS $INSTANCE_NAME szcli "$@"
 

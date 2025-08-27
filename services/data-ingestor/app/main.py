@@ -66,4 +66,4 @@ if __name__ == "__main__":
         f"Starting {SERVICE_NAME} version {SERVICE_VERSION}",
         extra={"event": "service_startup"}
     )
-    uvicorn.run("main:app", host=SERVER_IP, port=SERVER_PORT, reload=True)
+    uvicorn.run("main:app", host=SERVER_IP, port=SERVER_PORT)

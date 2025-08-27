@@ -14,9 +14,6 @@
 # --- Configuration ---
 set -e
 set -o pipefail # Exit script if any command in a pipeline fails
-COMPOSE_FILE="docker-compose/smoke-test/release_0.2.0.yml"
-TEST_CASE_FILE_PHASE2="data/smoke-test/smoke-test-phase-2.csv"
-TEST_CASE_FILE_PHASE3="data/smoke-test/smoke-test-phase-3.csv"
 
 # Ensure jq is installed
 if ! command -v jq &> /dev/null
@@ -24,7 +21,6 @@ then
     echo "jq could not be found. Please install jq to run this script."
     exit 1
 fi
-
 
 # --- Helper functions for colored logging ---
 Color_Off='\033[0m'
@@ -52,14 +48,27 @@ log_trace_id() {
     log_info "Trace ID: $1"
 }
 # --- Main Functions ---
+# 
+szcli() {
+    local instance_name="cli-daemon"
+    local container_id
+    container_id=$(docker ps -q --filter "name=${instance_name}")
+    
+    if [[ -z "$container_id" ]]; then
+        log_error "CI MODE ERROR: CLI daemon container ('${instance_name}') is not running!"
+        return 1
+    fi
+    # Execute the command inside the container
+    docker exec "$container_id" szcli "$@"
+}
 
 # Cleanup function that runs on script exit
 cleanup() {
     log_info "--- Tearing down test environment ---"
-    # docker compose -f "$COMPOSE_FILE" --profile=ui down -v --remove-orphans
-    # docker compose -f "$COMPOSE_FILE" --profile=core down -v --remove-orphans
-    # docker compose -f "$COMPOSE_FILE" --profile=toolkit down -v --remove-orphans
-    # docker compose -f "$COMPOSE_FILE" --profile=infra down -v --remove-orphans
+    docker compose -f "$COMPOSE_FILE" --profile=ui down -v --remove-orphans
+    docker compose -f "$COMPOSE_FILE" --profile=core down -v --remove-orphans
+    docker compose -f "$COMPOSE_FILE" --profile=toolkit down -v --remove-orphans
+    docker compose -f "$COMPOSE_FILE" --profile=infra down -v --remove-orphans
     log_success "Test environment cleaned up."
 }
 
@@ -68,8 +77,6 @@ trap cleanup EXIT
 
 # Phase 0: Setup and start the environment
 setup_environment() {
-    log_info "--- Phase 0: Setting up environment ---"
-
     log_info "Starting infrastructure services (db, redis)..."
     docker compose -f "$COMPOSE_FILE" --profile=infra up -d
     # A more robust waiting mechanism like wait-for-it.sh could be used here
@@ -95,8 +102,8 @@ setup_environment() {
     sleep 5
 
     log_info "Performing final health check on all services..."
-    health_output=$(szcli system health all)
-    if echo "$health_output" | grep -q "fail"; then
+    health_output=$(szcli -o json health all)
+    if echo "$health_output" | grep -q "unhealthy"; then
         log_error "Some services are not healthy!"
         echo "$health_output"
         exit 1
@@ -111,19 +118,18 @@ run_test_cases_from_file() {
     local test_file=$1
     log_info "--- Running test cases from: $test_file ---"
 
-    local output=$(szcli dataflow simulate 1970-01-01)
-    echo "$output"
-
     # Read CSV file, skip header, and handle potential carriage returns
-    tail -n +2 "$test_file" | tr -d '\r' | while IFS=, read -r szcli_command jq_path expected_value
+    tail -n +2 "$test_file" | tr -d '\r' | while IFS=, read -r szcli_command jq_path expected_value || [[ -n "$expected_value" ]]
     do
         # Remove quotes that might be wrapping the command
         szcli_command=$(echo "$szcli_command" | tr -d '"')
+        jq_path=$(echo "$jq_path" | xargs | tr -d '"')
+        expected_value=$(echo "$expected_value" | xargs | tr -d '"')
 
         log_info "Executing: $szcli_command"
         
         # Use eval to correctly handle arguments with spaces
-        local output=$(szcli dataflow simulate 1970-01-01 | sed -n '/^{/,$p')
+        local output=$(eval "$szcli_command" < /dev/null)
         echo "$output"
 
         # Use jq to extract the actual value from the JSON output
@@ -140,12 +146,8 @@ run_test_cases_from_file() {
             echo "$output"
             exit 1
         fi
+        sleep 5
     done
-}
-
-extract_trace_id() {
-    # 1. remove color codes 2. locate trace_id line 3. extract trace_id value
-    echo $1 | sed 's/\x1b\[[0-9;]*m//g' | grep "trace_id" | awk -F'[: ，]+' '{print $5}'
 }
 
 locate_log_by_trace_id() {
@@ -157,20 +159,17 @@ locate_log_by_trace_id() {
 
 # Test Cache Invalidation Mechanism (Corrected Logic)
 test_cache_invalidation_flow() {
-    log_info "--- Phase 1: Testing Cache Invalidation Mechanism ---"
     local test_date="1970-01-01" 
     
     # ... (Step 1: Simulate) ...
     log_info "Step 1/6: Simulating initial data for $test_date..."
-    local simulate_output_1=$(szcli dataflow simulate "$test_date")
-    local simulate_trace_id_1=$(extract_trace_id "$simulate_output_1")
+    local simulate_trace_id_1=$(szcli -o json dataflow simulate "$test_date" | jq -r '.task.trace_id')
     log_trace_id "$simulate_trace_id_1"
     sleep 5 # Wait for worker
 
     # ... (Step 2: Verify Miss) ...
     log_info "Step 2/6: Verifying data (expecting CACHE MISS)..."
-    local verify_output_1=$(szcli dataflow verify "$test_date")
-    local verify_trace_id_1=$(extract_trace_id "$verify_output_1")
+    local verify_trace_id_1=$(szcli -o json dataflow verify "$test_date" | jq -r '.task.trace_id')
     log_trace_id "$verify_trace_id_1"
 
     if locate_log_by_trace_id "$simulate_trace_id_1" "$verify_trace_id_1" | grep -q "Cache miss"; then
@@ -182,8 +181,7 @@ test_cache_invalidation_flow() {
 
     # ... (Step 3: Verify Hit) ...
     log_info "Step 3/6: Verifying data again (expecting CACHE HIT)..."
-    local verify_output_2=$(szcli dataflow verify "$test_date")
-    local verify_trace_id_2=$(extract_trace_id "$verify_output_2")
+    local verify_trace_id_2=$(szcli -o json dataflow verify "$test_date" | jq -r '.task.trace_id')
     log_trace_id "$verify_trace_id_2"
 
     if locate_log_by_trace_id "$simulate_trace_id_1" "$verify_trace_id_2" | grep -q "Cache hit"; then
@@ -195,15 +193,13 @@ test_cache_invalidation_flow() {
 
     # ... (Step 4: Cache Invalidation) ...
     log_info "Step 4/6: Re-Simulating to trigger cache invalidation..."
-    local simulate_output_2=$(szcli dataflow simulate "$test_date")
-    local simulate_trace_id_2=$(extract_trace_id "$simulate_output_2")
-    log_trace_id "$simulate_trace_id_2"
+    local simulate_output_2=$(szcli -o json dataflow simulate "$test_date" | jq -r '.task.trace_id')
+    log_trace_id "$simulate_output_2"
     sleep 5 # Wait for worker
 
     # ... (Step 5: Verify Miss) ...
     log_info "Step 5/6: Verifying data after invalidation (expecting new CACHE MISS)..."
-    local verify_output_3=$(szcli dataflow verify "$test_date")
-    local verify_trace_id_3=$(extract_trace_id "$verify_output_3")
+    local verify_trace_id_3=$(szcli -o json dataflow verify "$test_date" | jq -r '.task.trace_id')
     log_trace_id "$verify_trace_id_3"
 
     if locate_log_by_trace_id "$simulate_trace_id_2" "$verify_trace_id_3" | grep -q "Cache miss"; then
@@ -215,8 +211,7 @@ test_cache_invalidation_flow() {
 
     # ... (Step 6: Verify Hit) ...
     log_info "Step 6/6: Verifying data one last time (expecting new CACHE HIT)..."
-    local verify_output_4=$(szcli dataflow verify "$test_date")
-    local verify_trace_id_4=$(extract_trace_id "$verify_output_4")
+    local verify_trace_id_4=$(szcli -o json dataflow verify "$test_date" | jq -r '.task.trace_id')
     log_trace_id "$verify_trace_id_4"
 
     if locate_log_by_trace_id "$simulate_trace_id_2" "$verify_trace_id_4" | grep -q "Cache hit"; then
@@ -231,15 +226,17 @@ test_cache_invalidation_flow() {
 main() {
     log_info "========== Starting SafeZone Smoke Test =========="
     
+    log_info "--- Phase 0: Setting up environment ---"
     setup_environment
-    
-    # test_cache_invalidation_flow
-    
-    # log_info "--- Phase 2: Testing dataflow-1 (with smaller cases) ---"
-    # run_test_cases_from_file "$TEST_CASE_FILE_PHASE2"
 
-    # log_info "--- Phase 3: Testing dataflow-1 (with whole cases) ---"
-    # run_test_cases_from_file "$TEST_CASE_FILE_PHASE3"
+    log_info "--- Phase 1: Testing Cache Invalidation Mechanism ---"
+    test_cache_invalidation_flow
+    
+    log_info "--- Phase 2: Testing dataflow-1 (with smaller cases) ---"
+    run_test_cases_from_file "$TEST_CASE_FILE_PHASE2"
+
+    log_info "--- Phase 3: Testing dataflow-1 (with whole cases) ---"
+    run_test_cases_from_file "$TEST_CASE_FILE_PHASE3"
 
     log_success "========== Smoke Test Completed Successfully =========="
 }

@@ -30,6 +30,7 @@ async def get_redis_client(redis_name):
                 password=REDIS_PASSWORD,
                 decode_responses=True,
             )
+            logger.debug("Connected to redis-state successfully.")
         if redis_name == "redis-cache":
             redis_client = aioredis.Redis(
                 host=CACHE_HOST,
@@ -38,8 +39,8 @@ async def get_redis_client(redis_name):
                 password=CACHE_PASSWORD,
                 decode_responses=True,
             )
+            logger.debug("Connected to redis-cache successfully.")
         await redis_client.ping()  # Test the connection
-        logger.debug("Connected to Redis successfully.")
         return redis_client
     except Exception as e:
         logger.error(f"Failed to connect to Redis: {e}")

@@ -13,7 +13,7 @@ from config.settings import INGESTOR_URL, MAX_CONCURRENT_REQUESTS
 
 
 logger = logging.getLogger(__name__)
-
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 async def send_one(sem, client, url, case):
     async with sem:

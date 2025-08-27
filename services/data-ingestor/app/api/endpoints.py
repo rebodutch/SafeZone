@@ -51,7 +51,7 @@ async def sent_to_kafka(
         payload=payload,  # Ensure payload matches the model
         version="0.1.0",
     )
-    logger.info(
+    logger.debug(
         f"Sending event to Kafka: with payload {json.dumps(event.model_dump())} and partition key {partition_key}",
         extra={"event": "send_event_to_kafka"},
     )
@@ -65,7 +65,7 @@ async def sent_to_kafka(
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    return HealthResponse(success=True, message="Service is healthy.", status="healthy")
+    return HealthResponse(success=True, message="Service is healthy.", status={"ingestor": "healthy"})
 
 
 @router.post("/covid_event", response_model=APIResponse)
