@@ -1,5 +1,5 @@
 .PHONY: help build-all test-all push-all build-% test-% build-tool-% push-% \
-        test-worker-golang test-dashboard build-tool-cli build-tool-all
+        test-worker-golang test-dashboard build-tool-cli build-tool-all smoke-test
 
 # -------------------------
 # 1. components and their properties
@@ -43,21 +43,31 @@ time-server_VERSION           = latest
 time-server_PATH              = ./toolkit/time-server
 
 # -------------------------
+# 3. smoke test and its properties
+# -------------------------
+SMOKE_COMPOSE_FILE      = docker-compose/smoke-test/release_0.2.0.yml
+SMOKE_TEST_PHASE2_CSV   = data/smoke-test/smoke-test-phase-2.csv
+SMOKE_TEST_PHASE3_CSV   = data/smoke-test/smoke-test-phase-3.csv
+
+# -------------------------
 # 3. Pattern Rule for build/test
 # -------------------------
 build-%:
 	@echo "====== Building: $* ======"
-	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION) BUILD_PATH=$($*_PATH) bash scripts/build-image.sh
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION) BUILD_PATH=$($*_PATH) \
+		bash scripts/build-image.sh
 	@echo "====== Done: $* ======"
 
 test-%:
 	@echo "====== Testing: $* ======"
-	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION)_test BUILD_PATH=$($*_PATH) bash scripts/unit-test.sh
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION)_test BUILD_PATH=$($*_PATH) \
+		bash scripts/unit-test.sh
 	@echo "====== Done: $* ======"
 
 build-tool-%:
 	@echo "====== Building tool: $* ======"
-	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION) BUILD_PATH=$($*_PATH) bash scripts/build-image.sh
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION) BUILD_PATH=$($*_PATH) \
+		bash scripts/build-image.sh
 	@echo "====== Done tool: $* ======"
 
 push-%:
@@ -109,9 +119,21 @@ build-tool-all: $(addprefix build-tool-, $(TOOL_NAMES))
 push-all: $(addprefix push-, $(SERVICE_NAMES)) $(addprefix push-, $(TOOL_NAMES))
 	@echo "[INFO] ALL SERVICE/TOOL IMAGES PUSHED!"
 
+# -------------------------
+# 5. End-to-End Tests
+# -------------------------
+smoke-test:
+	@echo "====== Running: End-to-End Smoke Test ======"
+	@echo "Using Compose File: $(SMOKE_COMPOSE_FILE)"
+
+	@COMPOSE_FILE=$(SMOKE_COMPOSE_FILE) \
+		TEST_CASE_FILE_PHASE2=$(SMOKE_TEST_PHASE2_CSV) \
+		TEST_CASE_FILE_PHASE3=$(SMOKE_TEST_PHASE3_CSV) \
+		bash scripts/smoke-test.sh
+	@echo "====== Done: Smoke Test ======"
 
 # -------------------------
-# 5. Local CI 
+# 6. Local CI 
 # ------------------------- 
 local-ci: 
 	act -W .github/workflows/dev/ci.yml 
@@ -130,7 +152,7 @@ local-ci-down:
 
 
 # -------------------------
-# 6. Help
+# 7. Help
 # -------------------------
 help:
 	@echo "Available targets:"

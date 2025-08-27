@@ -109,7 +109,15 @@ services:
     profiles:
       - toolkit
 
-  # profiles: infra, [core], (seeding) ui
+  cli-daemon:
+    image: safezone-cli-command:latest
+    env_file:
+      - ../../.env.secret
+    environment:
+      - RELAY_URL=http://cli-relay:8000
+      - RELAY_TIMEOUT=3600
+    profiles:
+      - toolkit
 
   data-ingestor:
     image: safezone-data-ingestor:latest
@@ -144,7 +152,7 @@ services:
     environment:
       - ENVIRONMENT=STAGING
       - BATCH_SIZE=100
-      - FLUSH_INTERVAL=10s
+      - FLUSH_INTERVAL=1s
       - KAFKA_BROKER=kafka:9092
       - KAFKA_GROUP_ID=worker-group
       - KAFKA_TOPIC=covid.case.data

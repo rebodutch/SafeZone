@@ -35,10 +35,12 @@ func (d *DBSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 	}
 
 	collisionCheck := make(map[string]bool)
+	// keep track of valid events
+	validEventCount := 0
 	// building the SQL query for batch insert
 	sql := "INSERT INTO covid_cases (date, city_id, region_id, cases) VALUES "
 	args := make([]any, 0)
-	for i, e := range batch {
+	for _, e := range batch {
 		// the exist checking already done in validator, so we can safely assume city and region exist
 		cityID := d.cache.GetCityID(e.Payload.City)
 		regionID := d.cache.GetRegionID(cityID, e.Payload.Region)
@@ -55,11 +57,13 @@ func (d *DBSink) Flush(ctx context.Context, batch []schema.CovidEvent) error {
 		}
 		collisionCheck[collisionKey] = true
 
-		if i > 0 {
+		if validEventCount > 0 {
 			sql += ","
 		}
-		sql += fmt.Sprintf("($%d, $%d, $%d, $%d)", i*4+1, i*4+2, i*4+3, i*4+4)
+		sql += fmt.Sprintf("($%d, $%d, $%d, $%d)", validEventCount*4+1, validEventCount*4+2, validEventCount*4+3, validEventCount*4+4)
 		args = append(args, date, cityID, regionID, e.Payload.Cases)
+
+		validEventCount++
 	}
 	sql += " ON CONFLICT (date, city_id, region_id) DO UPDATE SET cases=EXCLUDED.cases"
 

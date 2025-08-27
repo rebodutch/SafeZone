@@ -65,7 +65,7 @@ async def sent_to_kafka(
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    return HealthResponse(success=True, message="Service is healthy.", status="healthy")
+    return HealthResponse(success=True, message="Service is healthy.", status={"ingestor": "healthy"})
 
 
 @router.post("/covid_event", response_model=APIResponse)
