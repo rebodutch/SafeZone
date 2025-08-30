@@ -1,4 +1,6 @@
-FROM safezone-dashboard:latest
+ARG BASE_IMAGE_TAG=latest
+
+FROM safezone-dashboard:${BASE_IMAGE_TAG}
 
 # ===== the following lines are added for test =====
 COPY services/dashboard/requirements.test.txt .

@@ -1,4 +1,6 @@
-FROM safezone-data-ingestor:latest
+ARG BASE_IMAGE_TAG=latest
+
+FROM safezone-data-ingestor:${BASE_IMAGE_TAG}
 
 # Copy requirements file into the container
 COPY services/data-ingestor/requirements.test.txt .

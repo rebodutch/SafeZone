@@ -1,4 +1,6 @@
-FROM safezone-pandemic-simulator:latest
+ARG BASE_IMAGE_TAG=latest
+
+FROM safezone-pandemic-simulator:${BASE_IMAGE_TAG}
 
 # Copy requirements file into the container
 COPY services/pandemic-simulator/requirements.test.txt .

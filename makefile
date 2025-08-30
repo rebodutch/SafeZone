@@ -1,30 +1,29 @@
 .PHONY: help build-all test-all push-all build-% test-% build-tool-% push-% \
         test-worker-golang test-dashboard build-tool-cli build-tool-all smoke-test
 
+# ------------------------
+# 0. global variables
+# -------------------------
+VERSION ?= latest
+
 # -------------------------
 # 1. components and their properties
 # -------------------------
 SERVICE_NAMES := data-ingestor pandemic-simulator analytics-api dashboard worker-golang
 
 data-ingestor_IMAGE_NAME        = safezone-data-ingestor
-data-ingestor_VERSION           = latest
 data-ingestor_PATH              = ./services/data-ingestor
 
-
 pandemic-simulator_IMAGE_NAME      = safezone-pandemic-simulator
-pandemic-simulator_VERSION         = latest
 pandemic-simulator_PATH            = ./services/pandemic-simulator
 
 analytics-api_IMAGE_NAME      = safezone-analytics-api
-analytics-api_VERSION         = latest
 analytics-api_PATH            = ./services/analytics-api
 
 dashboard_IMAGE_NAME      = safezone-dashboard
-dashboard_VERSION         = latest
 dashboard_PATH            = ./services/dashboard
 
 worker-golang_IMAGE_NAME      = safezone-worker
-worker-golang_VERSION         = latest
 worker-golang_PATH            = ./services/worker-golang
 
 # -------------------------
@@ -35,11 +34,9 @@ TOOL_NAMES := cli time-server
 # the building process of cli is complex, so we handle it separately
 # refer to scripts/cli/*.sh for details 
 cli_IMAGE_NAME           = safezone-cli-command # not used in the makefile
-cli_VERSION           	 = latest
 cli_PATH                 = ./toolkit/cli/command # not used in the makefile
 
 time-server_IMAGE_NAME        = safezone-time-server
-time-server_VERSION           = latest
 time-server_PATH              = ./toolkit/time-server
 
 # -------------------------
@@ -54,25 +51,25 @@ SMOKE_TEST_PHASE3_CSV   = data/smoke-test/smoke-test-phase-3.csv
 # -------------------------
 build-%:
 	@echo "====== Building: $* ======"
-	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION) BUILD_PATH=$($*_PATH) \
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION) BUILD_PATH=$($*_PATH) \
 		bash scripts/build-image.sh
 	@echo "====== Done: $* ======"
 
 test-%:
 	@echo "====== Testing: $* ======"
-	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION)_test BUILD_PATH=$($*_PATH) \
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION)_test BUILD_PATH=$($*_PATH) \
 		bash scripts/unit-test.sh
 	@echo "====== Done: $* ======"
 
 build-tool-%:
 	@echo "====== Building tool: $* ======"
-	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION) BUILD_PATH=$($*_PATH) \
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION) BUILD_PATH=$($*_PATH) \
 		bash scripts/build-image.sh
 	@echo "====== Done tool: $* ======"
 
 push-%:
 	@echo "====== Pushing: $* ======"
-	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$($*_VERSION) bash scripts/push-image.sh
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION) bash scripts/push-image.sh
 	@echo "====== Done: $* ======"
 
 # special case for worker-golang
@@ -84,24 +81,24 @@ test-worker-golang:
 # special case for data-ingestor (only integration-test)
 test-data-ingestor:
 	@echo "====== Testing: data-ingestor ======"
-	@IMAGE_NAME=$(data-ingestor_IMAGE_NAME) IMAGE_TAG=$(data-ingestor_VERSION)_test BUILD_PATH=$(data-ingestor_PATH) bash scripts/data-ingestor/unit-test.sh
+	@IMAGE_NAME=$(data-ingestor_IMAGE_NAME) IMAGE_TAG=$(VERSION)_test BUILD_PATH=$(data-ingestor_PATH) bash scripts/data-ingestor/unit-test.sh
 	@echo "====== Done: data-ingestor ======"
 
 # special case for dashboard (only unit-test)
 test-dashboard:
 	@echo "====== Testing: dashboard ======"
-	@IMAGE_NAME=$(dashboard_IMAGE_NAME) IMAGE_TAG=$(dashboard_VERSION)_test BUILD_PATH=$(dashboard_PATH) bash scripts/dashboard/unit-test.sh
+	@IMAGE_NAME=$(dashboard_IMAGE_NAME) IMAGE_TAG=$(VERSION)_test BUILD_PATH=$(dashboard_PATH) bash scripts/dashboard/unit-test.sh
 	@echo "====== Done: dashboard ======"
 
 # special case for cli
 build-tool-cli:
 	@echo "====== Building tool: cli ======"
-	@IMAGE_TAG=$(cli_VERSION) bash scripts/cli/build.sh
+	@IMAGE_TAG=$(VERSION) bash scripts/cli/build.sh
 	@echo "====== Done tool: cli ======"
 
 push-cli:
 	@echo "====== Pushing tool: cli ======"
-	@IMAGE_TAG=$(cli_VERSION) bash scripts/cli/push-image.sh
+	@IMAGE_TAG=$(VERSION) bash scripts/cli/push-image.sh
 	@echo "====== Done tool: cli ======"
 
 # -------------------------
@@ -129,6 +126,7 @@ smoke-test:
 	@COMPOSE_FILE=$(SMOKE_COMPOSE_FILE) \
 		TEST_CASE_FILE_PHASE2=$(SMOKE_TEST_PHASE2_CSV) \
 		TEST_CASE_FILE_PHASE3=$(SMOKE_TEST_PHASE3_CSV) \
+		VERSION=$(VERSION) \
 		bash scripts/smoke-test.sh
 	@echo "====== Done: Smoke Test ======"
 
@@ -136,20 +134,9 @@ smoke-test:
 # 6. Local CI 
 # ------------------------- 
 local-ci: 
-	act -W .github/workflows/dev/ci.yml 
+	act -W .github/workflows/smoke-test.local.yml
 	@echo "[INFO] LOCAL CI COMPLETED!"
 	@tput cnorm
-
-local-ci-compose: 
-	act -W .github/workflows/dev/ci.yml -j compose 
-	@echo "[INFO] LOCAL CI COMPLETED!"
-	@tput cnorm
-
-local-ci-down:
-	COMPOSE_PROFILES=infra,core,init,ui docker compose \
-					-f docker-compose/dev_compose.yml down
-	@echo "[INFO] LOCAL CI DOWN COMPLETED!"
-
 
 # -------------------------
 # 7. Help

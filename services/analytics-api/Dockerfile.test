@@ -1,4 +1,6 @@
-FROM safezone-analytics-api:latest
+ARG BASE_IMAGE_TAG=latest
+
+FROM safezone-analytics-api:${BASE_IMAGE_TAG}
 
 # ===== the following lines are added for test =====
 COPY services/analytics-api/requirements.test.txt .
