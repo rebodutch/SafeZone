@@ -70,7 +70,7 @@ services:
 
   time-server:
     container_name: time-server
-    image: safezone-time-server:latest
+    image: safezone-time-server:${VERSION}
     environment:
       - ENVIRONMENT=DEV
       - REDIS_HOST=redis-state
@@ -82,7 +82,7 @@ services:
       - toolkit
 
   cli-relay:
-    image: safezone-cli-relay:latest
+    image: safezone-cli-relay:${VERSION}
     env_file:
       - ../../.env.secret
     environment:
@@ -110,7 +110,7 @@ services:
       - toolkit
 
   cli-daemon:
-    image: safezone-cli-command:latest
+    image: safezone-cli-command:${VERSION}
     env_file:
       - ../../.env.secret
     environment:
@@ -120,7 +120,7 @@ services:
       - toolkit
 
   data-ingestor:
-    image: safezone-data-ingestor:latest
+    image: safezone-data-ingestor:${VERSION}
     env_file:
       - ../../services/data-ingestor/.env.example
     environment:
@@ -132,7 +132,7 @@ services:
       - core
 
   pandemic-simulator:
-    image: safezone-pandemic-simulator:latest
+    image: safezone-pandemic-simulator:${VERSION}
     volumes:
       - ../../data/smoke-test:/data
     env_file:
@@ -146,7 +146,7 @@ services:
       - core
 
   worker-golang:
-    image: safezone-worker:latest
+    image: safezone-worker:${VERSION}
     env_file:
       - ../../services/worker-golang/.env.example
     environment:
@@ -162,7 +162,7 @@ services:
       - core
 
   analytics-api:
-    image: safezone-analytics-api:latest
+    image: safezone-analytics-api:${VERSION}
     env_file:
       - ../../services/analytics-api/.env.example
     environment:
@@ -184,7 +184,7 @@ services:
   # profiles: infra, core, (seeding) [ui]
 
   dashboard:
-    image: safezone-dashboard:latest
+    image: safezone-dashboard:${VERSION}
     ports:
       - "8080:8080"
     env_file:
