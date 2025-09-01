@@ -1,0 +1,83 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    volumes:
+      - ../temp/db_volume:/var/lib/postgresql/data # the database volume already initialized for testing
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - infra
+
+  redis:
+    image: bitnami/redis:7.4.3-debian-12-r0
+    environment:
+      - REDIS_PASSWORD=5566
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles:
+      - infra
+    
+  redis-cache:
+    image: bitnami/redis:7.4.3-debian-12-r0
+    environment:
+      - REDIS_PASSWORD=5566
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles:
+      - infra
+  
+  time-server:  
+    container_name: time-server
+    image: safezone_time_server:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5566
+      - REDIS_DB=0
+      - LOG_LEVEL=DEBUG
+    profiles:
+      - api
+
+  analytics-api:
+    image: safezone_analytics_api:latest
+    env_file:
+      - ../../services/SafeZoneAnalyticsAPI/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - DB_URL=postgresql://postgres:password@db:5432/safezone
+      - REDIS_HOST=redis-cache
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5566
+      - REDIS_DB=0
+      - LOG_LEVEL=DEBUG
+    profiles:
+      - api
+
+  dashboard:
+    image: safezone_dashboard:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../../services/SafeZoneDashboard/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - TIME_SERVER_URL=http://time-server:8000
+      - LOG_LEVEL=INFO
+    profiles:
+      - ui

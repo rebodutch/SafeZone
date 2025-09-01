@@ -1,69 +1,88 @@
 # toolkit/time-server/api/endpoints.py
 import json
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime, date, timedelta
 
-import redis
-from fastapi import APIRouter, Query
-from fastapi.responses import JSONResponse
+import redis  # type: ignore
+from fastapi import APIRouter  # type: ignore
 
-from config.logger import get_logger
-from config.settings import REDIS_HOST
-from schemas import SetTimeModel
-from schemas import APIResponse, ErrResponse, TimeResponse, StatResponse
+from config.settings import REDIS_HOST, REDIS_PORT, REDIS_DB, REDIS_PASSWORD
+from utils.pydantic_model.request import SetTimeModel
+from utils.pydantic_model.response import APIResponse, SystemDateResponse
+from utils.pydantic_model.response import MocktimeStatusResponse, MocktimeStatusData
 
 router = APIRouter()
-logger = get_logger()
+logger = logging.getLogger(__name__)
+
+REDIS_PATH = "safezone:mock_date:config"
+
+def get_redis_connection():
+    """
+    Create a Redis connection.
+    """
+    return redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=REDIS_DB,
+        password=REDIS_PASSWORD,
+        decode_responses=True,
+    )
+
+def get_mock_config():
+    r = get_redis_connection()
+    config = r.hgetall(REDIS_PATH)
+    if not config:
+        # If no config is found, set default values
+        config = {
+            "mock": "False",
+            "mock_date": date.today().strftime("%Y-%m-%d"),
+            "mock_update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "acceleration": "1",
+            "launch_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        r.hset(REDIS_PATH, mapping=config)
+    return config
 
 
-def get_time_config():
-    r = redis.Redis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
-    value = r.get("time:config")
-    if not value:
-        raise ValueError("No time config found in redis.")
-    return json.loads(value)
-
-
-def get_current_date(
-    launch_time: datetime, mock_time: datetime, acceleration: int = 1
+def get_system_date(
+    mock_update_time: str, mock_date: str, acceleration: int = 1
 ) -> str:
     """
     Get the current date, adjusted by the number of bias days.
     """
-    shift = datetime.now() - launch_time
-    currtime = mock_time + shift * acceleration
-    return currtime.strftime("%Y-%m-%d")
+    shift = datetime.now() - datetime.strptime(mock_update_time, "%Y-%m-%d %H:%M:%S")
+    system_date = datetime.strptime(mock_date, "%Y-%m-%d") + shift * acceleration
+    return system_date.strftime("%Y-%m-%d")
 
 
-@router.get("/now", response_model=APIResponse)
+@router.get("/now", response_model=SystemDateResponse)
 async def get_now():
     try:
         logger.debug("Received request to get_now model.")
 
-        time_config = get_time_config()
+        mock_config = get_mock_config()
 
-        mock = bool(time_config["mock"])
+        mock = bool(mock_config["mock"])
 
         if not mock:
-            return TimeResponse(
+            return SystemDateResponse(
+                success=True,
                 message="Current date retrieved successfully.",
-                date=datetime.now().strftime("%Y-%m-%d"),
+                system_date=datetime.now().strftime("%Y-%m-%d"),
             )
         else:
-            return TimeResponse(
-                message="Current date retrieved successfully.",
-                date=get_current_date(
-                    launch_time=datetime.strptime(
-                        time_config["launch_time"], "%Y-%m-%d %H:%M:%S"
-                    ),
-                    mock_time=datetime.strptime(
-                        time_config["mock_time"], "%Y-%m-%d %H:%M:%S"
-                    ),
-                    acceleration=int(time_config["acceleration"]),
+            return SystemDateResponse(
+                success=True,
+                message="Mock date retrieved successfully.",
+                system_date=get_system_date(
+                    mock_update_time=mock_config["mock_update_time"],
+                    mock_date=mock_config["mock_date"],
+                    acceleration=int(mock_config["acceleration"]),
                 ),
             )
     except Exception as e:
-        logger.debug(f"Error while get_now model: {str(e)}")
-        return ErrResponse(
+        logger.error(f"Error while get_now model: {str(e)}")
+        return APIResponse(
             success=False,
             message="Error while get_now model.",
             detail=str(e),
@@ -71,7 +90,7 @@ async def get_now():
 
 
 @router.post("/set", response_model=APIResponse)
-async def set_time_config(
+async def set_mock_config(
     payload: SetTimeModel,
 ):
     try:
@@ -79,76 +98,95 @@ async def set_time_config(
 
         data = payload.model_dump()
 
-        mock = bool(data["mock"])
+        logger.debug(f"Received data: {data}")
+        # Ensure the Redis path exists and has default values if not set
+        _ = get_mock_config()
+
+        mock = data["mock"]
+        # optional fields
         mock_date = data["mock_date"] if "mock_date" in data else None
-        acceleration = data["accelerate"] if "accelerate" in data else 1
+        acceleration = data["acceleration"] if "acceleration" in data else None
 
-        time_config = get_time_config()
-        time_config["mock"] = mock
-        if mock:
+        logger.debug(f"Setting mock: {mock}, mock_date: {mock_date}, acceleration: {acceleration}")
+        r = get_redis_connection()
+        if not mock:
+            r.hset(REDIS_PATH, "mock", "False")
+            r.hset(REDIS_PATH, "mock_date", date.today().strftime("%Y-%m-%d"))
+            r.hset(
+                REDIS_PATH,
+                "mock_update_time",
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )
+            r.hset(REDIS_PATH, "acceleration", "1")
+        else:
             if mock_date:
-                time_config["mock_time"] = mock_date + " 00:00:00"
-                if "launch_time" not in time_config:
-                    time_config["launch_time"] = datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                # check if mock_time later than launch_time
-                launch_time = datetime.strptime(
-                    time_config["launch_time"], "%Y-%m-%d %H:%M:%S"
+                r.hset(REDIS_PATH, "mock", "True")
+                r.hset(REDIS_PATH, "mock_date", mock_date)
+                r.hset(
+                    REDIS_PATH,
+                    "mock_update_time",
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 )
-                mock_time = datetime.strptime(
-                    time_config["mock_time"], "%Y-%m-%d %H:%M:%S"
-                )
-                if mock_time > launch_time:
-                    raise ValueError("Launch time must be later than mock time.")
-            time_config["acceleration"] = acceleration
-
-        r = redis.Redis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
-        r.set("time:config", json.dumps(time_config))
-        logger.debug(f"Set time config: {time_config}")
+            if acceleration:
+                r.hset(REDIS_PATH, "acceleration", acceleration)
+        
+        logger.debug(f"Mock configuration updated successfully. {get_mock_config()}")
 
         return APIResponse(success=True, message="Time configuration set successfully.")
     except Exception as e:
-        logger.debug(f"Error while set_time model: {str(e)}")
-        return ErrResponse(
+        logger.error(f"Error while set_time model: {str(e)}")
+        return APIResponse(
             success=False,
             message="Error while set_time model.",
             detail=str(e),
         )
 
 
-@router.get("/status", response_model=StatResponse)
-async def get_time_config():
+@router.get("/status", response_model=MocktimeStatusResponse)
+async def get_status():
     try:
-        logger.debug("Received request to get_time_config model.")
+        logger.debug("Received request to get_mock_config model.")
 
-        time_config = get_time_config()
-        mock = bool(time_config.get("mock", False))
-        launch_time = datetime.strptime(
-            time_config.get("launch_time", "1970-01-01 00:00:00"),
-            "%Y-%m-%d %H:%M:%S",
-        )
-        mock_time = datetime.strptime(
-            time_config.get("mock_time", "1970-01-01 00:00:00"),
-            "%Y-%m-%d %H:%M:%S",
-        )
-        acceleration = int(time_config.get("acceleration", 1))
-
-        return StatResponse(
+        mock_config = get_mock_config()
+        mock = mock_config.get("mock", "False") == "True"
+        # If mock is not enabled, return the current date and system date
+        if not mock:
+            return MocktimeStatusResponse(
+                success=True,
+                message="Time server is not in mock mode.",
+                data=MocktimeStatusData(
+                    mock=mock,
+                    mock_date=datetime.now().strftime("%Y-%m-%d"),
+                    mock_update_time=mock_config.get(
+                        "mock_update_time", "1970-01-01 00:00:00"
+                    ),
+                    launch_time=mock_config.get("launch_time", "1970-01-01 00:00:00"),
+                    acceleration=1,
+                    system_date=datetime.now().strftime("%Y-%m-%d"),
+                ),
+            )
+        return MocktimeStatusResponse(
+            success=True,
             message="Time configuration retrieved successfully.",
-            mock=mock,
-            mock_time=mock_time.strftime("%Y-%m-%d %H:%M:%S"),
-            launch_time=launch_time.strftime("%Y-%m-%d %H:%M:%S"),
-            accelerate=acceleration,
-            current_date=get_current_date(
-                launch_time=launch_time, mock_time=mock_time, acceleration=acceleration
+            data=MocktimeStatusData(
+                mock=mock,
+                mock_date=mock_config.get("mock_date", "1970-01-01"),
+                mock_update_time=mock_config.get(
+                    "mock_update_time", "1970-01-01 00:00:00"
+                ),
+                launch_time=mock_config.get("launch_time", "1970-01-01 00:00:00"),
+                acceleration=mock_config.get("acceleration", "1"),
+                system_date=get_system_date(
+                    mock_update_time=mock_config.get("mock_update_time"),
+                    mock_date=mock_config.get("mock_date"),
+                    acceleration=int(mock_config.get("acceleration", 1)),
+                ),
             ),
-            real_date=datetime.now().strftime("%Y-%m-%d"),
         )
     except Exception as e:
-        logger.debug(f"Error while get_time_config model: {str(e)}")
-        return ErrResponse(
+        logger.error(f"Error while get_mock_config model: {str(e)}")
+        return APIResponse(
             success=False,
-            message="Error while get_time_config model.",
+            message="Error while get_mock_config model.",
             detail=str(e),
         )

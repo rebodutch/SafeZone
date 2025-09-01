@@ -33,8 +33,18 @@ ROLE_MAP = load_roles(get_setted_env("ROLE_FILE"))
 # DB settings
 DB_URL = get_setted_env("DB_URL")
 REPLICA_URL = get_setted_env("REPLICA_URL")
+
 # Redis settings
-REDIS_HOST = get_setted_env("REDIS_HOST")
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_DB = int(os.getenv("REDIS_DB", "1"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)  # Optional, can be None
+
+# Cache settings
+CACHE_HOST = os.getenv("CACHE_HOST", "localhost")
+CACHE_PORT = int(os.getenv("CACHE_PORT", "6479"))
+CACHE_PASSWORD = os.getenv("CACHE_PASSWORD", None)  # Optional, can be None
+
 # Service settings
 SIMULATOR_URL = get_setted_env("SIMULATOR_URL")
 INGESTOR_URL = get_setted_env("INGESTOR_URL")

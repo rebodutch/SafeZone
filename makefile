@@ -1,60 +1,146 @@
-SERVICE_NAMES := CovidDataIngestor CovidDataSimulator SafeZoneAnalyticsAPI SafeZoneDashboard
-TOOL_NAMES := CLI TimeServer
+.PHONY: help build-all test-all push-all build-% test-% build-tool-% push-% \
+        test-worker-golang test-dashboard build-tool-cli build-tool-all smoke-test
 
-# Tests do not cover the toolkit, so we need to test them manually
-test-%:
-	@if [ "$*" != "all" ]; then \
-		echo "#######################################################"; \
-		echo " Running tests for: $*"; \
-		echo "#######################################################\n"; \
-		bash scripts/$*/test.sh; \
-		echo "\n[INFO] Build completed for: $*"; \
-		echo "--------------------------------------------------------\n\n"; \
-	fi
+# ------------------------
+# 0. global variables
+# -------------------------
+VERSION ?= latest
 
+# -------------------------
+# 1. components and their properties
+# -------------------------
+SERVICE_NAMES := data-ingestor pandemic-simulator analytics-api dashboard worker-golang
+
+data-ingestor_IMAGE_NAME        = safezone-data-ingestor
+data-ingestor_PATH              = ./services/data-ingestor
+
+pandemic-simulator_IMAGE_NAME      = safezone-pandemic-simulator
+pandemic-simulator_PATH            = ./services/pandemic-simulator
+
+analytics-api_IMAGE_NAME      = safezone-analytics-api
+analytics-api_PATH            = ./services/analytics-api
+
+dashboard_IMAGE_NAME      = safezone-dashboard
+dashboard_PATH            = ./services/dashboard
+
+worker-golang_IMAGE_NAME      = safezone-worker
+worker-golang_PATH            = ./services/worker-golang
+
+# -------------------------
+# 2. tools and their properties
+# -------------------------
+TOOL_NAMES := cli time-server
+
+# the building process of cli is complex, so we handle it separately
+# refer to scripts/cli/*.sh for details 
+cli_IMAGE_NAME           = safezone-cli-command # not used in the makefile
+cli_PATH                 = ./toolkit/cli/command # not used in the makefile
+
+time-server_IMAGE_NAME        = safezone-time-server
+time-server_PATH              = ./toolkit/time-server
+
+# -------------------------
+# 3. smoke test and its properties
+# -------------------------
+SMOKE_COMPOSE_FILE      = docker-compose/smoke-test/release_0.2.0.yml
+SMOKE_TEST_PHASE2_CSV   = data/smoke-test/smoke-test-phase-2.csv
+SMOKE_TEST_PHASE3_CSV   = data/smoke-test/smoke-test-phase-3.csv
+
+# -------------------------
+# 3. Pattern Rule for build/test
+# -------------------------
 build-%:
-	@if [ "$*" != "all" ]; then \
-		echo "#######################################################"; \
-		echo " Building service: $*"; \
-		echo "#######################################################\n"; \
-		bash scripts/$*/build.sh; \
-		echo "\n[INFO] Tests completed for: $*"; \
-		echo "--------------------------------------------------------\n\n"; \
-	fi
+	@echo "====== Building: $* ======"
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION) BUILD_PATH=$($*_PATH) \
+		bash scripts/build-image.sh
+	@echo "====== Done: $* ======"
+
+test-%:
+	@echo "====== Testing: $* ======"
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION)_test BUILD_PATH=$($*_PATH) \
+		bash scripts/unit-test.sh
+	@echo "====== Done: $* ======"
 
 build-tool-%:
-	@if [ "$*" != "all" ]; then \
-		echo "#######################################################"; \
-		echo " Building tool: $*"; \
-		echo "#######################################################\n"; \
-		bash scripts/toolkit/$*/build.sh; \
-		echo "\n[INFO] Build completed for tool: $*"; \
-		echo "--------------------------------------------------------\n\n"; \
-	fi
+	@echo "====== Building tool: $* ======"
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION) BUILD_PATH=$($*_PATH) \
+		bash scripts/build-image.sh
+	@echo "====== Done tool: $* ======"
 
-# Global commands
+push-%:
+	@echo "====== Pushing: $* ======"
+	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION) bash scripts/push-image.sh
+	@echo "====== Done: $* ======"
+
+# special case for worker-golang
+test-worker-golang:
+	@echo "====== Testing worker: golang ======"
+	@echo "Not implemented yet, skipping..."
+	@echo "====== Done: worker-golang ======"
+
+# special case for data-ingestor (only integration-test)
+test-data-ingestor:
+	@echo "====== Testing: data-ingestor ======"
+	@IMAGE_NAME=$(data-ingestor_IMAGE_NAME) IMAGE_TAG=$(VERSION)_test BUILD_PATH=$(data-ingestor_PATH) bash scripts/data-ingestor/unit-test.sh
+	@echo "====== Done: data-ingestor ======"
+
+# special case for dashboard (only unit-test)
+test-dashboard:
+	@echo "====== Testing: dashboard ======"
+	@IMAGE_NAME=$(dashboard_IMAGE_NAME) IMAGE_TAG=$(VERSION)_test BUILD_PATH=$(dashboard_PATH) bash scripts/dashboard/unit-test.sh
+	@echo "====== Done: dashboard ======"
+
+# special case for cli
+build-tool-cli:
+	@echo "====== Building tool: cli ======"
+	@IMAGE_TAG=$(VERSION) bash scripts/cli/build.sh
+	@echo "====== Done tool: cli ======"
+
+push-cli:
+	@echo "====== Pushing tool: cli ======"
+	@IMAGE_TAG=$(VERSION) bash scripts/cli/push-image.sh
+	@echo "====== Done tool: cli ======"
+
+# -------------------------
+# 4. Build/Test ALL
+# -------------------------
+build-all: $(addprefix build-, $(SERVICE_NAMES))
+	@echo "[INFO] ALL SERVICE IMAGES BUILT!"
+
 test-all: $(addprefix test-, $(SERVICE_NAMES))
 	@echo "[INFO] ALL TESTS PASSED!"
 	
-build-all: $(addprefix build-, $(SERVICE_NAMES)) \
-		   $(addprefix build-tool-, $(TOOL_NAMES))
-	@echo "[INFO] ALL IMAGES BUILDED!"
- 
+build-tool-all: $(addprefix build-tool-, $(TOOL_NAMES))
+	@echo "[INFO] ALL TOOL IMAGES BUILDED!"
+
+push-all: $(addprefix push-, $(SERVICE_NAMES)) $(addprefix push-, $(TOOL_NAMES))
+	@echo "[INFO] ALL SERVICE/TOOL IMAGES PUSHED!"
+
+# -------------------------
+# 5. End-to-End Tests
+# -------------------------
+smoke-test:
+	@echo "====== Running: End-to-End Smoke Test ======"
+	@echo "Using Compose File: $(SMOKE_COMPOSE_FILE)"
+
+	@COMPOSE_FILE=$(SMOKE_COMPOSE_FILE) \
+		TEST_CASE_FILE_PHASE2=$(SMOKE_TEST_PHASE2_CSV) \
+		TEST_CASE_FILE_PHASE3=$(SMOKE_TEST_PHASE3_CSV) \
+		VERSION=$(VERSION) \
+		bash scripts/smoke-test.sh
+	@echo "====== Done: Smoke Test ======"
+
+# -------------------------
+# 6. Local CI 
+# ------------------------- 
 local-ci: 
-	act -W .github/workflows/dev/ci.yml 
+	act -W .github/workflows/smoke-test.local.yml
 	@echo "[INFO] LOCAL CI COMPLETED!"
 	@tput cnorm
 
-local-ci-compose: 
-	act -W .github/workflows/dev/ci.yml -j compose 
-	@echo "[INFO] LOCAL CI COMPLETED!"
-	@tput cnorm
-
-local-ci-down:
-	COMPOSE_PROFILES=infra,core,init,ui docker compose \
-					-f docker-compose/dev_compose.yml down
-	@echo "[INFO] LOCAL CI DOWN COMPLETED!"
-# Help
+# -------------------------
+# 7. Help
+# -------------------------
 help:
 	@echo "Available targets:"
 	@echo "  local-ci             Run local CI tests"
@@ -63,4 +149,9 @@ help:
 	@echo "  build-tool-<tool>    Build a specific tool"
 	@echo "  test-all             Run tests for all services"
 	@echo "  build-all            Build all services/tools"
-	
+	@echo "  build-tool-all       Build all tools"
+	@echo "  push-<service/tool>  Push a specific service/tool image to the registry"
+	@echo "  push-all             Push all service/tool images to the registry"
+	@echo "  local-ci-compose     Run local CI with compose job"
+	@echo "  local-ci-down        Bring down the local CI environment"
+	@echo "  help                 Show this help message"

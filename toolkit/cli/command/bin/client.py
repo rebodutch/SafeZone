@@ -1,6 +1,7 @@
 # /bin/client.py
 import time
 import json
+import uuid
 import logging
 from typing import Optional
 
@@ -8,18 +9,30 @@ import requests  # type: ignore
 from pathlib import Path  # type: ignore
 from pydantic import BaseModel  # type: ignore
 
-from schemas.request import SimulateModel, VerifyModel, SetTimeModel, HealthModel
-from schemas.response import APIResponse, VerifyResponseModel
+from utils.pydantic_model.request import (
+    SimulateModel,
+    VerifyModel,
+    SetTimeModel,
+    HealthCheckModel,
+    DBInitModel,
+)
+from utils.pydantic_model.response import (
+    APIResponse,
+    HealthResponse,
+    SystemDateResponse,
+    MocktimeStatusResponse,
+    AnalyticsAPIResponse,
+)
 from config.settings import RELAY_URL, RELAY_TIMEOUT
 from config.settings import TOKEN_FILE, CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN
+from bin.context import global_context
 
 logger = logging.getLogger(__name__)
 
 
 class BaseAuthClient:
-    def __init__(self, trace_id: str):
+    def __init__(self):
         self._refresh_token()
-        self.trace_id = trace_id
 
     def _refresh_token(self) -> str:
         logger.debug("Refreshing authentication token...")
@@ -65,7 +78,7 @@ class BaseAuthClient:
         # generate the authentication header
         header["Authorization"] = f"Bearer {self._get_id_token()}"
         # generate the trace header
-        header["X-Trace-ID"] = self.trace_id
+        header["X-Trace-ID"] = global_context.get("trace_id", str(uuid.uuid4()))
         return header
 
     def auth_request(
@@ -111,7 +124,7 @@ class DataflowClient(BaseAuthClient):
             method="POST",
             path="dataflow/simulate",
             payload=kwargs,
-            request_model=SimulateModel
+            request_model=SimulateModel,
         )
 
     def verify(self, **kwargs):
@@ -120,13 +133,15 @@ class DataflowClient(BaseAuthClient):
             path="dataflow/verify",
             params=kwargs,
             request_model=VerifyModel,
-            response_model=VerifyResponseModel,
+            response_model=AnalyticsAPIResponse,
         )
 
 
 class TimeClient(BaseAuthClient):
     def now(self):
-        return self.auth_request(method="GET", path="system/time/now")
+        return self.auth_request(
+            method="GET", path="system/time/now", response_model=SystemDateResponse
+        )
 
     def set(self, **kwargs):
         return self.auth_request(
@@ -137,7 +152,11 @@ class TimeClient(BaseAuthClient):
         )
 
     def get_status(self):
-        return self.auth_request(method="GET", path="system/time/status")
+        return self.auth_request(
+            method="GET",
+            path="system/time/status",
+            response_model=MocktimeStatusResponse,
+        )
 
 
 class HealthClient(BaseAuthClient):
@@ -146,13 +165,22 @@ class HealthClient(BaseAuthClient):
             method="GET",
             path="system/health",
             params=kwargs,
-            request_model=HealthModel,
+            request_model=HealthCheckModel,
+            response_model=HealthResponse,
         )
 
 
 class DBClient(BaseAuthClient):
-    def init(self):
-        return self.auth_request(method="POST", path="db/init")
+    def init(self, force: bool = False):
+        return self.auth_request(
+            method="POST",
+            path="db/init",
+            payload=DBInitModel(force=force).model_dump(mode="json"),
+            request_model=DBInitModel,
+        )
 
     def clear(self):
         return self.auth_request(method="POST", path="db/clear")
+
+    def reset(self):
+        return self.auth_request(method="POST", path="db/reset")

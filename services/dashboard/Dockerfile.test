@@ -1,0 +1,15 @@
+ARG BASE_IMAGE_TAG=latest
+
+FROM safezone-dashboard:${BASE_IMAGE_TAG}
+
+# ===== the following lines are added for test =====
+COPY services/dashboard/requirements.test.txt .
+# Install test dependencies specified in requirements.test.txt
+RUN pip install --no-cache-dir -r requirements.test.txt --root-user-action=ignore
+
+# copy .env file
+COPY services/dashboard/.env.example /app/.env
+# copy test
+COPY services/dashboard/test /test
+
+COPY utils /app/utils

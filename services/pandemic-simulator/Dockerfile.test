@@ -1,0 +1,15 @@
+ARG BASE_IMAGE_TAG=latest
+
+FROM safezone-pandemic-simulator:${BASE_IMAGE_TAG}
+
+# Copy requirements file into the container
+COPY services/pandemic-simulator/requirements.test.txt .
+
+# Install dependencies specified in requirements.test.txt
+RUN pip install --no-cache-dir -r requirements.test.txt --root-user-action=ignore
+
+COPY services/pandemic-simulator/test /test
+
+COPY services/pandemic-simulator/.env.example /app/.env
+
+COPY services/pandemic-simulator/data/test_data.csv /data/covid_data.csv

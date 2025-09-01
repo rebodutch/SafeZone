@@ -1,0 +1,86 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    volumes:
+      - ../temp/db_volume:/var/lib/postgresql/data # the database volume already initialized for testing
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - infra
+
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    healthcheck:
+      test: ["CMD", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - infra
+
+  kafka:
+    image: bitnami/kafka:3.7
+    hostname: kafka
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+    profiles:
+      - infra
+
+  data-ingestor:
+    image: safezone-data-ingestor:latest
+    env_file:
+      - ../../services/data-ingestor/.env.example
+    environment:
+      - KAFKA_BOOTSTRAP=kafka:9092
+      - KAFKA_TOPIC=covid.case.data
+      - LOG_LEVEL=DEBUG
+    profiles:
+      - service
+
+  pandemic-simulator:
+    image: safezone-pandemic-simulator:latest
+    volumes:
+      - ../../services/pandemic-simulator/data:/data
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../services/pandemic-simulator/.env.example
+    environment:
+      - INGESTOR_URL=http://data-ingestor:8000
+      - MAX_CONCURRENT_REQUESTS=20
+      - LOG_LEVEL=INFO
+    depends_on:
+      - data-ingestor
+    profiles:
+      - service
+  
+  worker-golang:
+    image: safezone-worker:latest
+    env_file:
+      - ../../services/worker-golang/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - LOG_LEVEL=DEBUG
+      - IDLE_TIMEOUT=86400s
+      - BATCH_SIZE=100
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_GROUP_ID=worker-group
+      - KAFKA_TOPIC=covid.case.data
+      - DB_URL=postgres://postgres:password@db:5432/safezone
+    profiles:
+      - worker
+

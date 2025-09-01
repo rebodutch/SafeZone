@@ -3,11 +3,12 @@ set -e
 
 # --------- Customizable Section ---------
 IMAGE_REPO="ghcr.io/safezone"
-IMAGE_NAME="safezone_cli_command"
-IMAGE_TAG="latest"
-INSTANCE_NAME="safezone_cli_daemon"
+IMAGE_NAME="safezone-cli-command"
+# IMAGE_TAG="latest"
+INSTANCE_NAME="safezone-cli-daemon"
 # ENV variables for the daemon
-RELAY_URL="http://safezone.omh.idv.tw/cli"
+RELAY_URL="http://172.17.0.1:8000" # relay URL for docker compose testing
+# RELAY_URL="https://safezone.omh.idv.tw/cli" # relay URL for k3s
 RELAY_TIMEOUT=3600
 TOKEN_FILE="/app/.temp_token.json"
 # --------------------------------
@@ -36,5 +37,12 @@ if ! docker ps -q --filter "name=$INSTANCE_NAME" | grep -q .; then
 fi
 
 # 4. Execute CLI command, aligning paths with local environment
-docker exec -it $INSTANCE_NAME szcli "$@"
+if [ -t 0 ]; then
+  # if interactive terminal 
+  DOCKER_FLAGS="-it"
+else
+  DOCKER_FLAGS="-i"
+fi
+
+docker exec $DOCKER_FLAGS $INSTANCE_NAME szcli "$@"
 

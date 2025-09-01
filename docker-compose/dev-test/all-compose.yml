@@ -1,0 +1,193 @@
+services:
+  # profiles: [infra], core, (seeding) ui
+
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safezone
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - infra
+
+  redis-state:
+    image: bitnami/redis:7.4.3-debian-12-r0
+    environment:
+      - REDIS_PASSWORD=5566
+    # ports:
+    #   - "6379:6379" # it's not neessary to expose Redis to the host，redis-state only accessed by other services in the compose
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles:
+      - infra
+
+  redis-cache:
+    image: bitnami/redis:7.4.3-debian-12-r0
+    environment:
+      - REDIS_PASSWORD=5566
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles:
+      - infra
+
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    healthcheck:
+      test: ["CMD", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - infra
+
+  kafka:
+    image: bitnami/kafka:3.7
+    hostname: kafka
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+    profiles:
+      - infra
+
+  time-server:
+    container_name: time-server
+    image: safezone-time-server:latest
+    environment:
+      - ENVIRONMENT=DEV
+      - REDIS_HOST=redis-state
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5566
+      - REDIS_DB=0
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis-state:
+        condition: service_healthy
+    profiles:
+      - infra
+
+  cli-relay:
+    image: safezone-cli-relay:latest
+    env_file:
+      - ../../.env.secret
+    environment:
+      - ENVIRONMENT=DEV
+      - DB_URL=postgresql://postgres:password@db:5432/safezone
+      - REPLICA_URL=postgresql://postgres:password@db:5432/safezone # Use the same database for simplicity
+      - REDIS_HOST=redis-state
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5566
+      - REDIS_DB=0
+      - CACHE_HOST=redis-cache
+      - CACHE_PORT=6379
+      - CACHE_PASSWORD=5566
+      - SIMULATOR_URL=http://pandemic-simulator:8000
+      - INGESTOR_URL=http://data-ingestor:8000
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - DASHBOARD_URL=http://dashboard:8080
+      - MKDOC_URL=http://mkdocs:8000
+      - TIME_SERVER_URL=http://time-server:8000
+      - ROLE_FILE=roles.example.yml
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    profiles:
+      - cli
+
+  # profiles: infra, [core], (seeding) ui
+
+  data-ingestor:
+    image: safezone-data-ingestor:latest
+    env_file:
+      - ../../services/data-ingestor/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - KAFKA_BOOTSTRAP=kafka:9092
+      - KAFKA_TOPIC=covid.case.data
+      - LOG_LEVEL=INFO
+    profiles:
+      - core
+
+  pandemic-simulator:
+    image: safezone-pandemic-simulator:latest
+    volumes:
+      - ../../data/smoke-test:/data
+    env_file:
+      - ../../services/pandemic-simulator/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - INGESTOR_URL=http://data-ingestor:8000
+      - MAX_CONCURRENT_REQUESTS=20
+      - LOG_LEVEL=INFO
+    profiles:
+      - core
+
+  worker-golang:
+    image: safezone-worker:latest
+    env_file:
+      - ../../services/worker-golang/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - BATCH_SIZE=100
+      - FLUSH_INTERVAL=10s
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_GROUP_ID=worker-group
+      - KAFKA_TOPIC=covid.case.data
+      - DB_URL=postgres://postgres:password@db:5432/safezone
+      - LOG_LEVEL=INFO
+    profiles:
+      - core
+
+  analytics-api:
+    image: safezone-analytics-api:latest
+    env_file:
+      - ../../services/analytics-api/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - DB_URL=postgresql://postgres:password@db:5432/safezone
+      - REDIS_HOST=redis-state
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=5566
+      - REDIS_DB=0
+      - POLL_CACHE_VERSION_INTERVAL=1
+      - CACHE_HOST=redis-cache
+      - CACHE_PORT=6379
+      - CACHE_PASSWORD=5566
+      - CACHE_DB=0
+      - LOG_LEVEL=INFO
+    profiles:
+      - core
+
+  # profiles: infra, core, (seeding) [ui]
+
+  dashboard:
+    image: safezone-dashboard:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../../services/dashboard/.env.example
+    environment:
+      - ENVIRONMENT=DEV
+      - ANALYTICS_API_URL=http://analytics-api:8000
+      - TIME_SERVER_URL=http://time-server:8000
+      - LOG_LEVEL=INFO
+    profiles:
+      - ui

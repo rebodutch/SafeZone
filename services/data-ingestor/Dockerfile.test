@@ -1,0 +1,12 @@
+ARG BASE_IMAGE_TAG=latest
+
+FROM safezone-data-ingestor:${BASE_IMAGE_TAG}
+
+# Copy requirements file into the container
+COPY services/data-ingestor/requirements.test.txt .
+
+# Install dependencies specified in requirements.test.txt
+RUN pip install --no-cache-dir -r requirements.test.txt --root-user-action=ignore
+
+COPY services/data-ingestor/test /test
+COPY services/data-ingestor/.env.example /app/.env
