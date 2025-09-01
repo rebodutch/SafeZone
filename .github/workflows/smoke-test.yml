@@ -17,20 +17,17 @@ jobs:
 
       - name: List all files
         run: ls -R
+      
+      - name: Set up dynamic VERSION variable
+        run: echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
 
       - name: Build Service Images
-        env:
-          VERSION: ${{ github.sha }}
         run: make build-all
             
       - name: Build Toolkit Images
-        env:
-          VERSION: ${{ github.sha }}
         run: make build-tool-all
 
       - name: Run Unit & Integration Tests
-        env:
-          VERSION: ${{ github.sha }}
         run: make test-all
       
       - name: Create .env.secret
@@ -42,6 +39,4 @@ jobs:
           EOF
 
       - name: Run End-to-End Smoke Test
-        env:
-          VERSION: ${{ github.sha }}
         run: make smoke-test
