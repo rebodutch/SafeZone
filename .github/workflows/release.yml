@@ -8,9 +8,6 @@ on:
 jobs:
   release:
     runs-on: self-hosted
-    # permissions:
-    #   contents: read
-    #   packages: write 
 
     steps:
       - name: Checkout code
@@ -27,6 +24,12 @@ jobs:
         run: |
           echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
           echo "RELEASE_VERSION=$(echo ${GITHUB_REF_NAME} | sed 's/^v//')" >> $GITHUB_ENV
-      
-      - name: Build and Push all images with Release Version
+
+      - name: Build Service Images
+        run: make build-all
+            
+      - name: Build Toolkit Images
+        run: make build-tool-all
+
+      - name: Tag and Push all images with Release Version
         run: make push-all
