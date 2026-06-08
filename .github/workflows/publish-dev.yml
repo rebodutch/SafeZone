@@ -1,0 +1,44 @@
+name: Publish Dev Images
+
+# E1: on every `dev` merge, publish per-sha dev images to GHCR so the deploy
+# repo's `preview` env has a real artifact to validate BEFORE any version tag
+# is cut. Mirrors release.yml, but the remote tag is the in-flight product
+# version (from the VERSION file) suffixed with the commit sha: 0.X.Y-<sha>.
+# The official 0.X.Y tag is still assigned by the git tag at release time.
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  publish-dev:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set up VERSION variables (in-flight product version + sha)
+        run: |
+          SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "VERSION=$SHA" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$(cat VERSION)-$SHA" >> $GITHUB_ENV
+
+      - name: Build Service Images
+        run: make build-all
+
+      - name: Build Toolkit Images
+        run: make build-tool-all
+
+      - name: Tag and Push all images as dev (0.X.Y-<sha>)
+        run: make push-all
