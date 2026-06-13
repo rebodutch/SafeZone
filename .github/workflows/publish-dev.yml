@@ -1,0 +1,91 @@
+name: Publish Dev Images
+
+# E1: on every `dev` merge, publish per-sha dev images to GHCR so the deploy
+# repo's `preview` env has a real artifact to validate BEFORE any version tag
+# is cut. Mirrors release.yml, but the remote tag is the in-flight product
+# version (from the VERSION file) suffixed with the commit sha: 0.X.Y-<sha>.
+# The official 0.X.Y tag is still assigned by the git tag at release time.
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  publish-dev:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          submodules: 'recursive'
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set up VERSION variables (in-flight product version + sha)
+        run: |
+          SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "VERSION=$SHA" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$(cat VERSION)-$SHA" >> $GITHUB_ENV
+
+      - name: Build Service Images
+        run: make build-all
+
+      - name: Build Toolkit Images
+        run: make build-tool-all
+
+      - name: Tag and Push all images as dev (0.X.Y-<sha>)
+        run: make push-all
+
+      # ── Freight issue (IssueOps): announce the candidate (opt-in) ──
+      # Images publish on EVERY dev merge (E1), but announcing a candidate for
+      # validation is a deliberate act — most merges bundle toward a later
+      # validation, not "validate this one now". Opt in by ticking the `freight`
+      # label on the PR before merging (clickable, decided pre-merge, auditable
+      # on the PR); otherwise the image is published silently. When announced:
+      # opens a deploy-repo issue (the deploy work queue), init-deploy marks it
+      # `validated` on green, the release gate requires that label, the release
+      # run closes it. If skipped here, init-deploy's find-or-create still makes
+      # the issue at validation time. Cross-repo write needs the PAT
+      # (GITHUB_TOKEN is repo-scoped); failure only warns.
+      - name: Open freight issue in the deploy repo
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DEPLOY_REPO: SafeChord/SafeZone-Deploy
+        run: |
+          # Resolve the PR merged by this commit and check for the `freight`
+          # label. No PR / not labeled → silent publish.
+          LABELS=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '.[].labels[].name' 2>/dev/null || true)
+          if ! echo "$LABELS" | grep -Fxq "freight"; then
+            echo "PR not labeled 'freight' — image published, no candidate announced."
+            exit 0
+          fi
+          TITLE="freight: ${RELEASE_VERSION}"
+          EXISTING=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state all \
+            --json title --jq '.[].title' || true)
+          if echo "$EXISTING" | grep -Fxq "$TITLE"; then
+            echo "Freight issue already exists: $TITLE"
+            exit 0
+          fi
+          BODY=$(printf 'Candidate `%s` published to GHCR (all services + cli images).\n\nRun: %s/%s/actions/runs/%s\n\nNext: repoint the preview values to this tag and run init-deploy.yml. A green run adds the `validated` label; the app release gate requires it.' \
+            "$RELEASE_VERSION" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")
+          if ! gh issue create --repo "$DEPLOY_REPO" --label freight \
+               --title "$TITLE" --body "$BODY"; then
+            echo "::warning::Could not open freight issue '$TITLE' in $DEPLOY_REPO (token lacks cross-repo issues:write?). Open it manually or let init-deploy create it."
+            exit 0
+          fi
+          # Housekeeping: close superseded candidates (open, not yet validated).
+          gh issue list --repo "$DEPLOY_REPO" --label freight --state open \
+            --json number,title,labels \
+            --jq ".[] | select(.title != \"$TITLE\") | select((.labels | map(.name) | contains([\"validated\"])) | not) | .number" \
+          | while read -r NUM; do
+              gh issue close "$NUM" --repo "$DEPLOY_REPO" \
+                --comment "Superseded by \`$TITLE\` (never validated)." || true
+            done

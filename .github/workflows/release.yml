@@ -1,9 +1,29 @@
 name: Create and Publish Release
 
+# ADR-2 (delivery-workflow draft): release = promote-by-retag, NOT rebuild.
+# The candidate sha comes from the tagged dev->main merge commit (^2 = the dev
+# HEAD publish-dev built). Whether that candidate was actually VALIDATED is
+# checked against the freight record (IssueOps): publish-dev announces each
+# candidate as a "freight: 0.X.Y-<sha>" issue in the deploy repo, a green
+# init-deploy run adds the `validated` label, and this workflow requires the
+# exact title + label before retagging the digests server-side as the
+# official :0.X.Y — so "shipped == validated" holds end-to-end with zero
+# file-level coupling between the repos.
+
 on:
   push:
     tags:
-      - 'v*.*.*' 
+      - 'v*.*.*'
+
+env:
+  DEPLOY_REPO: SafeChord/SafeZone-Deploy
+  REMOTE: ghcr.io/rebodutch
+  # Keep in sync with the Makefile component lists (SERVICE_NAMES + TOOL_NAMES,
+  # with cli expanding to its three images).
+  IMAGES: >-
+    safezone-data-ingestor safezone-pandemic-simulator safezone-analytics-api
+    safezone-dashboard safezone-dashboard-v2 safezone-worker
+    safezone-time-server safezone-cli-command safezone-cli-relay safezone-cli-ops
 
 jobs:
   release:
@@ -11,25 +31,93 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          # Need the tagged merge commit's parents for the source cross-check.
+          fetch-depth: 2
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Set up dynamic VERSION variable from Git Tag
+      - name: Resolve release version (assert VERSION file agrees)
         run: |
-          echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=$(echo ${GITHUB_REF_NAME} | sed 's/^v//')" >> $GITHUB_ENV
+          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$(cat VERSION)" != "$RELEASE_VERSION" ]; then
+            echo "::error::VERSION file ($(cat VERSION)) != tag version ($RELEASE_VERSION) — wrong commit tagged, or the VERSION bump was forgotten."
+            exit 1
+          fi
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
-      - name: Build Service Images
-        run: make build-all
-            
-      - name: Build Toolkit Images
-        run: make build-tool-all
+      - name: Resolve the candidate source tag from the tagged merge
+        run: |
+          # The tag must sit on the dev->main merge commit; its dev-side
+          # parent (^2) is the candidate sha that publish-dev built.
+          if ! MERGE_PARENT=$(git rev-parse "${GITHUB_SHA}^2" 2>/dev/null); then
+            echo "::error::Tagged commit is not a merge commit. Tag the dev->main merge commit."
+            exit 1
+          fi
+          echo "SOURCE_VERSION=${RELEASE_VERSION}-${MERGE_PARENT:0:7}" >> "$GITHUB_ENV"
 
-      - name: Tag and Push all images with Release Version
-        run: make push-all
+      - name: Check the freight record (IssueOps gate)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The candidate's freight issue (opened by publish-dev) carries the
+          # `validated` label only after a green init-deploy run. Exact title
+          # match + label, never parsed: no validated record, no release.
+          TITLE="freight: ${SOURCE_VERSION}"
+          if ! gh issue list --repo "$DEPLOY_REPO" --label freight --label validated \
+               --state all --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
+            echo "::error::No validated freight record '$TITLE' in $DEPLOY_REPO — this candidate never passed preview validation. Re-run the preview deploy (init-deploy.yml) at this sha, or cut the tag from the validated commit."
+            exit 1
+          fi
+          echo "Validated freight record found: $TITLE"
+
+      - name: Pre-flight — all validated images exist in GHCR
+        run: |
+          # All-or-nothing: verify the full set before any retag so a partial
+          # publish can never produce a half-promoted release.
+          for img in $IMAGES; do
+            if ! docker buildx imagetools inspect "$REMOTE/$img:$SOURCE_VERSION" > /dev/null; then
+              echo "::error::$REMOTE/$img:$SOURCE_VERSION not found in GHCR."
+              exit 1
+            fi
+          done
+          echo "All validated images present for $SOURCE_VERSION."
+
+      - name: Promote validated images to the release tag (retag, no rebuild)
+        run: make promote-all
+
+      - name: Promotion summary
+        run: |
+          {
+            echo "## Release ${RELEASE_VERSION} — promoted from ${SOURCE_VERSION}"
+            echo ""
+            echo "| image | digest |"
+            echo "| --- | --- |"
+            for img in $IMAGES; do
+              digest=$(docker buildx imagetools inspect "$REMOTE/$img:$RELEASE_VERSION" | awk '/^Digest:/{print $2}')
+              echo "| $img | $digest |"
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Close the freight record
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          # Best-effort bookkeeping: GITHUB_TOKEN cannot write to another repo,
+          # so this uses GHCR_TOKEN (works if it carries repo scope). Failure
+          # loses only the comment+close, never the release.
+          TITLE="freight: ${SOURCE_VERSION}"
+          NUM=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state open \
+            --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+          if [ -n "$NUM" ] && gh issue close "$NUM" --repo "$DEPLOY_REPO" \
+               --comment "Promoted as \`v${RELEASE_VERSION}\` by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."; then
+            echo "Freight record #$NUM closed."
+          else
+            echo "::warning::Could not close freight record '$TITLE' in $DEPLOY_REPO — close it manually."
+          fi

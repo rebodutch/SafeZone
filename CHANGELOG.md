@@ -9,7 +9,7 @@ This release introduces the modern React SPA Dashboard (v2) replacing the legacy
 
 ### Added
 
-- **React SPA Dashboard v2 (#38)**: Introduced a fast, modern single-page application built on Vite + React 19 + TypeScript.
+- **React SPA Dashboard v2 (#38, closes #33)**: Introduced a fast, modern single-page application built on Vite + React 19 + TypeScript.
 - **Geospatial Mapping & Analytics**: Integrated MapLibre GL for fluid vector map zooms/drill-down, and Recharts for responsive infection trends and Top 10 scoreboard analytics.
 - **Unit Test Coverage**: Added comprehensive Vitest suite covering key React services (`apiClient`, `caseService`, and `timeService`) achieving robust test coverage.
 

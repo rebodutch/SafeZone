@@ -60,11 +60,13 @@ main() {
 
     # Phase 1: Run ops container on compose network
     log_info "--- Phase 1: Running ops smoke test ---"
+    # Explicit command (the ops image has no ENTRYPOINT; mirrors the
+    # safezone-ops chart's command-explicit Job spec).
     docker run --rm \
         --network "$NETWORK_NAME" \
         --env-file "$SCRIPT_DIR/../.env.secret" \
         -e RELAY_URL=http://cli-relay:8000 \
-        "$OPS_IMAGE"
+        "$OPS_IMAGE" python /app/smoke_test.py
 
     log_success "========== Container-Native Smoke Test Passed =========="
 }

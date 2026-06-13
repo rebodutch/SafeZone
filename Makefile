@@ -1,6 +1,6 @@
-.PHONY: help build-all push-all build-% test-% build-tool-% push-% \
+.PHONY: help build-all push-all promote-all build-% test-% build-tool-% push-% promote-% \
         test-worker-golang test-dashboard build-tool-cli build-tool-all smoke-test \
-        ci-all ci-% ci-dashboard-v2 ci-worker-golang
+        ci-all ci-% ci-dashboard-v2 ci-worker-golang promote-cli
 
 # ------------------------
 # 0. global variables
@@ -74,6 +74,14 @@ push-%:
 	@IMAGE_NAME=$($*_IMAGE_NAME) IMAGE_TAG=$(VERSION) bash scripts/push-image.sh
 	@echo "====== Done: $* ======"
 
+# Release promotion: server-side retag of the preview-validated dev image
+# (SOURCE_VERSION=0.X.Y-<sha>) to the official tag (RELEASE_VERSION=0.X.Y).
+# Both vars come from the release.yml environment; no rebuild happens here.
+promote-%:
+	@echo "====== Promoting: $* ======"
+	@IMAGE_NAME=$($*_IMAGE_NAME) bash scripts/promote-image.sh
+	@echo "====== Done: $* ======"
+
 # special case for worker-golang (Go: build test image from source, not base binary)
 test-worker-golang:
 	@echo "====== Testing: worker-golang ======"
@@ -106,6 +114,11 @@ push-cli:
 	@IMAGE_TAG=$(VERSION) bash scripts/cli/push-image.sh
 	@echo "====== Done tool: cli ======"
 
+promote-cli:
+	@echo "====== Promoting tool: cli ======"
+	@bash scripts/cli/promote-image.sh
+	@echo "====== Done tool: cli ======"
+
 # -------------------------
 # 4. Aggregate targets
 # -------------------------
@@ -132,6 +145,9 @@ build-tool-all: $(addprefix build-tool-, $(TOOL_NAMES))
 
 push-all: $(addprefix push-, $(SERVICE_NAMES)) $(addprefix push-, $(TOOL_NAMES))
 	@echo "[INFO] ALL SERVICE/TOOL IMAGES PUSHED!"
+
+promote-all: $(addprefix promote-, $(SERVICE_NAMES)) $(addprefix promote-, $(TOOL_NAMES))
+	@echo "[INFO] ALL SERVICE/TOOL IMAGES PROMOTED!"
 
 # -------------------------
 # 5. End-to-End Tests
