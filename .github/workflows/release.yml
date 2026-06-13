@@ -1,23 +1,41 @@
 name: Create and Publish Release
 
 # ADR-2 (delivery-workflow draft): release = promote-by-retag, NOT rebuild.
-# The candidate sha comes from the tagged dev->main merge commit (^2 = the dev
-# HEAD publish-dev built). Whether that candidate was actually VALIDATED is
-# checked against the freight record (IssueOps): publish-dev announces each
-# candidate as a "freight: 0.X.Y-<sha>" issue in the deploy repo, a green
-# init-deploy run adds the `validated` label, and this workflow requires the
-# exact title + label before retagging the digests server-side as the
-# official :0.X.Y — so "shipped == validated" holds end-to-end with zero
-# file-level coupling between the repos.
+# The candidate sha is the preview-VALIDATED one; whether it was validated is
+# proven by the freight record (ADR-5, IssueOps): the deploy repo carries a
+# `freight: 0.X.Y-<sha>` issue labeled `validated`, and this workflow requires
+# it before promoting the digests to the official `:0.X.Y` via digest-preserving
+# `crane copy` — so "shipped == validated" holds end-to-end.
+#
+# Two trigger modes (the tag is an immutable product snapshot; promotion is a
+# re-runnable mechanic — decoupling them keeps release-tooling iteration from
+# burning product version numbers):
+#   - push tag v*.*.* : normal release; version from the tag, source sha from
+#     the dev->main merge's ^2; live promotion.
+#   - workflow_dispatch: manual (re-)run / dry-run; version + optional source
+#     sha as inputs; dry-run copies to :<ver>-dryrun and skips the freight close.
 
 on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to promote, e.g. 0.3.6 (no v prefix)'
+        required: true
+      source_sha:
+        description: 'Validated dev sha (7 chars). Blank = resolve from the validated freight issue.'
+        required: false
+      dry_run:
+        description: 'Dry run: copy to :<ver>-dryrun, do not touch :<ver> or close the freight'
+        type: boolean
+        default: true
 
 env:
   DEPLOY_REPO: SafeChord/SafeZone-Deploy
   REMOTE: ghcr.io/rebodutch
+  CRANE_VERSION: v0.20.2
   # Keep in sync with the Makefile component lists (SERVICE_NAMES + TOOL_NAMES,
   # with cli expanding to its three images).
   IMAGES: >-
@@ -33,7 +51,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          # Need the tagged merge commit's parents for the source cross-check.
+          # Need the tagged merge commit's parents for the ^2 source resolution.
           fetch-depth: 2
 
       - name: Log in to GitHub Container Registry
@@ -43,75 +61,107 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Resolve release version (assert VERSION file agrees)
+      - name: Resolve version, source, and mode
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
-          if [ "$(cat VERSION)" != "$RELEASE_VERSION" ]; then
-            echo "::error::VERSION file ($(cat VERSION)) != tag version ($RELEASE_VERSION) — wrong commit tagged, or the VERSION bump was forgotten."
-            exit 1
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RELEASE_VERSION="${{ inputs.version }}"
+            DRY_RUN="${{ inputs.dry_run }}"
+            SHA="${{ inputs.source_sha }}"
+            if [ -z "$SHA" ]; then
+              # Resolve the validated sha from the freight record for this version.
+              SOURCE_VERSION=$(gh issue list --repo "$DEPLOY_REPO" --label freight --label validated \
+                --state all --json title --jq '.[].title' \
+                | sed -n 's/^freight: //p' | grep -E "^${RELEASE_VERSION}-[0-9a-f]{7}$" | head -1)
+              [ -n "$SOURCE_VERSION" ] || { echo "::error::no validated freight for ${RELEASE_VERSION} in $DEPLOY_REPO"; exit 1; }
+            else
+              SOURCE_VERSION="${RELEASE_VERSION}-${SHA}"
+            fi
+          else
+            RELEASE_VERSION="${GITHUB_REF_NAME#v}"
+            DRY_RUN="false"
+            if [ "$(cat VERSION)" != "$RELEASE_VERSION" ]; then
+              echo "::error::VERSION file ($(cat VERSION)) != tag version ($RELEASE_VERSION) — wrong commit tagged, or the VERSION bump was forgotten."
+              exit 1
+            fi
+            if ! MERGE_PARENT=$(git rev-parse --short=7 "${GITHUB_SHA}^2" 2>/dev/null); then
+              echo "::error::Tagged commit is not a merge commit. Tag the dev->main merge commit."
+              exit 1
+            fi
+            SOURCE_VERSION="${RELEASE_VERSION}-${MERGE_PARENT}"
           fi
-          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
-
-      - name: Resolve the candidate source tag from the tagged merge
-        run: |
-          # The tag must sit on the dev->main merge commit; its dev-side
-          # parent (^2) is the candidate sha that publish-dev built.
-          if ! MERGE_PARENT=$(git rev-parse "${GITHUB_SHA}^2" 2>/dev/null); then
-            echo "::error::Tagged commit is not a merge commit. Tag the dev->main merge commit."
-            exit 1
+          if [ "$DRY_RUN" = "true" ]; then
+            TARGET_VERSION="${RELEASE_VERSION}-dryrun"
+          else
+            TARGET_VERSION="${RELEASE_VERSION}"
           fi
-          echo "SOURCE_VERSION=${RELEASE_VERSION}-${MERGE_PARENT:0:7}" >> "$GITHUB_ENV"
+          {
+            echo "RELEASE_VERSION=$RELEASE_VERSION"
+            echo "SOURCE_VERSION=$SOURCE_VERSION"
+            echo "TARGET_VERSION=$TARGET_VERSION"
+            echo "DRY_RUN=$DRY_RUN"
+          } >> "$GITHUB_ENV"
+          echo "mode=${{ github.event_name }} source=$SOURCE_VERSION target=$TARGET_VERSION dry_run=$DRY_RUN"
 
       - name: Check the freight record (IssueOps gate)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # The candidate's freight issue (opened by publish-dev) carries the
-          # `validated` label only after a green init-deploy run. Exact title
-          # match + label, never parsed: no validated record, no release.
+          # The candidate's freight issue carries the `validated` label only
+          # after a green GATE 2 sign-off. Exact title match + label, never
+          # parsed: no validated record, no release.
           TITLE="freight: ${SOURCE_VERSION}"
           if ! gh issue list --repo "$DEPLOY_REPO" --label freight --label validated \
                --state all --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
-            echo "::error::No validated freight record '$TITLE' in $DEPLOY_REPO — this candidate never passed preview validation. Re-run the preview deploy (init-deploy.yml) at this sha, or cut the tag from the validated commit."
+            echo "::error::No validated freight record '$TITLE' in $DEPLOY_REPO — this candidate never passed GATE 2."
             exit 1
           fi
           echo "Validated freight record found: $TITLE"
 
+      - name: Install crane
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP" crane
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
       - name: Pre-flight — all validated images exist in GHCR
         run: |
-          # All-or-nothing: verify the full set before any retag so a partial
+          set -euo pipefail
+          # All-or-nothing: verify the full set before any copy so a partial
           # publish can never produce a half-promoted release.
           for img in $IMAGES; do
-            if ! docker buildx imagetools inspect "$REMOTE/$img:$SOURCE_VERSION" > /dev/null; then
+            if ! crane digest "$REMOTE/$img:$SOURCE_VERSION" > /dev/null 2>&1; then
               echo "::error::$REMOTE/$img:$SOURCE_VERSION not found in GHCR."
               exit 1
             fi
           done
           echo "All validated images present for $SOURCE_VERSION."
 
-      - name: Promote validated images to the release tag (retag, no rebuild)
+      - name: Promote validated images (crane copy, digest-preserving)
         run: make promote-all
 
       - name: Promotion summary
         run: |
           {
-            echo "## Release ${RELEASE_VERSION} — promoted from ${SOURCE_VERSION}"
+            if [ "$DRY_RUN" = "true" ]; then echo "## DRY-RUN — ${SOURCE_VERSION} -> :${TARGET_VERSION}"; else echo "## Release ${RELEASE_VERSION} — promoted from ${SOURCE_VERSION}"; fi
             echo ""
             echo "| image | digest |"
             echo "| --- | --- |"
             for img in $IMAGES; do
-              digest=$(docker buildx imagetools inspect "$REMOTE/$img:$RELEASE_VERSION" | awk '/^Digest:/{print $2}')
-              echo "| $img | $digest |"
+              echo "| $img | $(crane digest "$REMOTE/$img:$TARGET_VERSION") |"
             done
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Close the freight record
+        if: ${{ env.DRY_RUN == 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          # Best-effort bookkeeping: GITHUB_TOKEN cannot write to another repo,
-          # so this uses GHCR_TOKEN (works if it carries repo scope). Failure
-          # loses only the comment+close, never the release.
+          # Best-effort: GITHUB_TOKEN cannot write cross-repo, so this uses
+          # GHCR_TOKEN. Failure loses only the comment+close, never the release.
           TITLE="freight: ${SOURCE_VERSION}"
           NUM=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state open \
             --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
