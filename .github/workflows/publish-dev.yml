@@ -42,3 +42,38 @@ jobs:
 
       - name: Tag and Push all images as dev (0.X.Y-<sha>)
         run: make push-all
+
+      # ── Freight issue (IssueOps): announce the candidate ──
+      # Every published candidate opens a deploy-repo issue — the deploy work
+      # queue starts from an issue, not from "I think we should deploy now".
+      # init-deploy marks it `validated` on green; the release gate requires
+      # that label; the release run closes it. Cross-repo write needs the PAT
+      # (GITHUB_TOKEN is repo-scoped); failure warns but never blocks publish —
+      # init-deploy can create the issue itself if this step misses.
+      - name: Open freight issue in the deploy repo
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          DEPLOY_REPO: SafeChord/SafeZone-Deploy
+        run: |
+          TITLE="freight: ${RELEASE_VERSION}"
+          EXISTING=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state all \
+            --json title --jq '.[].title' || true)
+          if echo "$EXISTING" | grep -Fxq "$TITLE"; then
+            echo "Freight issue already exists: $TITLE"
+            exit 0
+          fi
+          BODY=$(printf 'Candidate `%s` published to GHCR (all services + cli images).\n\nRun: %s/%s/actions/runs/%s\n\nNext: repoint the preview values to this tag and run init-deploy.yml. A green run adds the `validated` label; the app release gate requires it.' \
+            "$RELEASE_VERSION" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")
+          if ! gh issue create --repo "$DEPLOY_REPO" --label freight \
+               --title "$TITLE" --body "$BODY"; then
+            echo "::warning::Could not open freight issue '$TITLE' in $DEPLOY_REPO (token lacks cross-repo issues:write?). Open it manually or let init-deploy create it."
+            exit 0
+          fi
+          # Housekeeping: close superseded candidates (open, not yet validated).
+          gh issue list --repo "$DEPLOY_REPO" --label freight --state open \
+            --json number,title,labels \
+            --jq ".[] | select(.title != \"$TITLE\") | select((.labels | map(.name) | contains([\"validated\"])) | not) | .number" \
+          | while read -r NUM; do
+              gh issue close "$NUM" --repo "$DEPLOY_REPO" \
+                --comment "Superseded by \`$TITLE\` (never validated)." || true
+            done

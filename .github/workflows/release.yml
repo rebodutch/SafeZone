@@ -3,12 +3,12 @@ name: Create and Publish Release
 # ADR-2 (delivery-workflow draft): release = promote-by-retag, NOT rebuild.
 # The candidate sha comes from the tagged dev->main merge commit (^2 = the dev
 # HEAD publish-dev built). Whether that candidate was actually VALIDATED is
-# checked against the freight record (IssueOps): the deploy repo's
-# init-deploy.yml opens a "validated: 0.X.Y-<sha> (preview)" issue on green
-# in-cluster validation, and this workflow requires an exact title match
-# before retagging the digests server-side as the official :0.X.Y — so
-# "shipped == validated" holds end-to-end with zero file-level coupling
-# between the repos.
+# checked against the freight record (IssueOps): publish-dev announces each
+# candidate as a "freight: 0.X.Y-<sha>" issue in the deploy repo, a green
+# init-deploy run adds the `validated` label, and this workflow requires the
+# exact title + label before retagging the digests server-side as the
+# official :0.X.Y — so "shipped == validated" holds end-to-end with zero
+# file-level coupling between the repos.
 
 on:
   push:
@@ -66,16 +66,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # The deploy repo writes "validated: <tag> (preview)" issues on green
-          # in-cluster validation (init-deploy.yml). Exact title match, never
-          # parsed: no record, no release.
-          TITLE="validated: ${SOURCE_VERSION} (preview)"
-          if ! gh issue list --repo "$DEPLOY_REPO" --label freight --state all \
-               --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
-            echo "::error::No freight record '$TITLE' in $DEPLOY_REPO — this candidate never passed preview validation. Re-run the preview deploy (init-deploy.yml) at this sha, or cut the tag from the validated commit."
+          # The candidate's freight issue (opened by publish-dev) carries the
+          # `validated` label only after a green init-deploy run. Exact title
+          # match + label, never parsed: no validated record, no release.
+          TITLE="freight: ${SOURCE_VERSION}"
+          if ! gh issue list --repo "$DEPLOY_REPO" --label freight --label validated \
+               --state all --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
+            echo "::error::No validated freight record '$TITLE' in $DEPLOY_REPO — this candidate never passed preview validation. Re-run the preview deploy (init-deploy.yml) at this sha, or cut the tag from the validated commit."
             exit 1
           fi
-          echo "Freight record found: $TITLE"
+          echo "Validated freight record found: $TITLE"
 
       - name: Pre-flight — all validated images exist in GHCR
         run: |
@@ -112,7 +112,7 @@ jobs:
           # Best-effort bookkeeping: GITHUB_TOKEN cannot write to another repo,
           # so this uses GHCR_TOKEN (works if it carries repo scope). Failure
           # loses only the comment+close, never the release.
-          TITLE="validated: ${SOURCE_VERSION} (preview)"
+          TITLE="freight: ${SOURCE_VERSION}"
           NUM=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state open \
             --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
           if [ -n "$NUM" ] && gh issue close "$NUM" --repo "$DEPLOY_REPO" \
