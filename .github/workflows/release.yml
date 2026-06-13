@@ -1,9 +1,26 @@
 name: Create and Publish Release
 
+# ADR-2 (delivery-workflow draft): release = promote-by-retag, NOT rebuild.
+# The deploy repo's preview/<ver> values are the authoritative cross-repo
+# record of which dev image set (0.X.Y-<sha>) passed in-cluster validation.
+# This workflow reads that record back, cross-checks it against the tagged
+# merge commit, and retags the validated digests server-side as the official
+# :0.X.Y — so "shipped == validated" holds end-to-end.
+
 on:
   push:
     tags:
-      - 'v*.*.*' 
+      - 'v*.*.*'
+
+env:
+  DEPLOY_REPO: SafeChord/SafeZone-Deploy
+  REMOTE: ghcr.io/rebodutch
+  # Keep in sync with the Makefile component lists (SERVICE_NAMES + TOOL_NAMES,
+  # with cli expanding to its three images).
+  IMAGES: >-
+    safezone-data-ingestor safezone-pandemic-simulator safezone-analytics-api
+    safezone-dashboard safezone-dashboard-v2 safezone-worker
+    safezone-time-server safezone-cli-command safezone-cli-relay safezone-cli-ops
 
 jobs:
   release:
@@ -12,6 +29,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Need the tagged merge commit's parents for the source cross-check.
+          fetch-depth: 2
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -20,16 +40,72 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Set up dynamic VERSION variable from Git Tag
+      - name: Resolve release version (assert VERSION file agrees)
         run: |
-          echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=$(echo ${GITHUB_REF_NAME} | sed 's/^v//')" >> $GITHUB_ENV
+          RELEASE_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$(cat VERSION)" != "$RELEASE_VERSION" ]; then
+            echo "::error::VERSION file ($(cat VERSION)) != tag version ($RELEASE_VERSION) — wrong commit tagged, or the VERSION bump was forgotten."
+            exit 1
+          fi
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
-      - name: Build Service Images
-        run: make build-all
-            
-      - name: Build Toolkit Images
-        run: make build-tool-all
+      - name: Read the validated source tag from the deploy repo
+        run: |
+          # The preview/<ver> values are the freight record: the image tag the
+          # in-cluster validation actually ran against.
+          git clone --quiet --depth 1 --branch "preview/${RELEASE_VERSION}" \
+            "https://github.com/${DEPLOY_REPO}.git" /tmp/deploy-repo
+          TAGS=$(grep -rh 'tag:' /tmp/deploy-repo/helm-charts/*/values-preview*.yaml | awk '{print $2}' | sort -u)
+          if [ "$(echo "$TAGS" | wc -l)" -ne 1 ]; then
+            echo "::error::preview values pin more than one image tag — preview did not validate a single coherent image set:"
+            echo "$TAGS"
+            exit 1
+          fi
+          if ! echo "$TAGS" | grep -qE "^${RELEASE_VERSION}-[0-9a-f]{7}$"; then
+            echo "::error::validated tag '$TAGS' does not match ${RELEASE_VERSION}-<sha7>."
+            exit 1
+          fi
+          echo "SOURCE_VERSION=$TAGS" >> "$GITHUB_ENV"
 
-      - name: Tag and Push all images with Release Version
-        run: make push-all
+      - name: Cross-check the tag commit against the validated sha
+        run: |
+          # Double-entry bookkeeping (draft §3 step 8): the git tag and the
+          # promoted digest must describe the same source state. The dev-side
+          # parent of the tagged dev->main merge must BE the validated sha.
+          if ! TAG_DEV_SHA=$(git rev-parse --short=7 "${GITHUB_SHA}^2" 2>/dev/null); then
+            echo "::error::Tagged commit is not a merge commit. Tag the dev->main merge commit (or cut the tag from the validated commit itself)."
+            exit 1
+          fi
+          SOURCE_SHA="${SOURCE_VERSION#"${RELEASE_VERSION}"-}"
+          if [ "$TAG_DEV_SHA" != "$SOURCE_SHA" ]; then
+            echo "::error::Tag's dev-side parent ($TAG_DEV_SHA) != preview-validated sha ($SOURCE_SHA). dev advanced past the validated commit — re-validate preview at the new sha, or cut the tag from the validated commit."
+            exit 1
+          fi
+
+      - name: Pre-flight — all validated images exist in GHCR
+        run: |
+          # All-or-nothing: verify the full set before any retag so a partial
+          # publish can never produce a half-promoted release.
+          for img in $IMAGES; do
+            if ! docker buildx imagetools inspect "$REMOTE/$img:$SOURCE_VERSION" > /dev/null; then
+              echo "::error::$REMOTE/$img:$SOURCE_VERSION not found in GHCR."
+              exit 1
+            fi
+          done
+          echo "All validated images present for $SOURCE_VERSION."
+
+      - name: Promote validated images to the release tag (retag, no rebuild)
+        run: make promote-all
+
+      - name: Promotion summary
+        run: |
+          {
+            echo "## Release ${RELEASE_VERSION} — promoted from ${SOURCE_VERSION}"
+            echo ""
+            echo "| image | digest |"
+            echo "| --- | --- |"
+            for img in $IMAGES; do
+              digest=$(docker buildx imagetools inspect "$REMOTE/$img:$RELEASE_VERSION" | awk '/^Digest:/{print $2}')
+              echo "| $img | $digest |"
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
