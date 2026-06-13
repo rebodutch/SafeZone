@@ -1,11 +1,14 @@
 name: Create and Publish Release
 
 # ADR-2 (delivery-workflow draft): release = promote-by-retag, NOT rebuild.
-# The deploy repo's preview/<ver> values are the authoritative cross-repo
-# record of which dev image set (0.X.Y-<sha>) passed in-cluster validation.
-# This workflow reads that record back, cross-checks it against the tagged
-# merge commit, and retags the validated digests server-side as the official
-# :0.X.Y — so "shipped == validated" holds end-to-end.
+# The candidate sha comes from the tagged dev->main merge commit (^2 = the dev
+# HEAD publish-dev built). Whether that candidate was actually VALIDATED is
+# checked against the freight record (IssueOps): the deploy repo's
+# init-deploy.yml opens a "validated: 0.X.Y-<sha> (preview)" issue on green
+# in-cluster validation, and this workflow requires an exact title match
+# before retagging the digests server-side as the official :0.X.Y — so
+# "shipped == validated" holds end-to-end with zero file-level coupling
+# between the repos.
 
 on:
   push:
@@ -49,38 +52,30 @@ jobs:
           fi
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
-      - name: Read the validated source tag from the deploy repo
+      - name: Resolve the candidate source tag from the tagged merge
         run: |
-          # The preview/<ver> values are the freight record: the image tag the
-          # in-cluster validation actually ran against.
-          git clone --quiet --depth 1 --branch "preview/${RELEASE_VERSION}" \
-            "https://github.com/${DEPLOY_REPO}.git" /tmp/deploy-repo
-          TAGS=$(grep -rh 'tag:' /tmp/deploy-repo/helm-charts/*/values-preview*.yaml | awk '{print $2}' | sort -u)
-          if [ "$(echo "$TAGS" | wc -l)" -ne 1 ]; then
-            echo "::error::preview values pin more than one image tag — preview did not validate a single coherent image set:"
-            echo "$TAGS"
+          # The tag must sit on the dev->main merge commit; its dev-side
+          # parent (^2) is the candidate sha that publish-dev built.
+          if ! MERGE_PARENT=$(git rev-parse "${GITHUB_SHA}^2" 2>/dev/null); then
+            echo "::error::Tagged commit is not a merge commit. Tag the dev->main merge commit."
             exit 1
           fi
-          if ! echo "$TAGS" | grep -qE "^${RELEASE_VERSION}-[0-9a-f]{7}$"; then
-            echo "::error::validated tag '$TAGS' does not match ${RELEASE_VERSION}-<sha7>."
-            exit 1
-          fi
-          echo "SOURCE_VERSION=$TAGS" >> "$GITHUB_ENV"
+          echo "SOURCE_VERSION=${RELEASE_VERSION}-${MERGE_PARENT:0:7}" >> "$GITHUB_ENV"
 
-      - name: Cross-check the tag commit against the validated sha
+      - name: Check the freight record (IssueOps gate)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Double-entry bookkeeping (draft §3 step 8): the git tag and the
-          # promoted digest must describe the same source state. The dev-side
-          # parent of the tagged dev->main merge must BE the validated sha.
-          if ! TAG_DEV_SHA=$(git rev-parse --short=7 "${GITHUB_SHA}^2" 2>/dev/null); then
-            echo "::error::Tagged commit is not a merge commit. Tag the dev->main merge commit (or cut the tag from the validated commit itself)."
+          # The deploy repo writes "validated: <tag> (preview)" issues on green
+          # in-cluster validation (init-deploy.yml). Exact title match, never
+          # parsed: no record, no release.
+          TITLE="validated: ${SOURCE_VERSION} (preview)"
+          if ! gh issue list --repo "$DEPLOY_REPO" --label freight --state all \
+               --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
+            echo "::error::No freight record '$TITLE' in $DEPLOY_REPO — this candidate never passed preview validation. Re-run the preview deploy (init-deploy.yml) at this sha, or cut the tag from the validated commit."
             exit 1
           fi
-          SOURCE_SHA="${SOURCE_VERSION#"${RELEASE_VERSION}"-}"
-          if [ "$TAG_DEV_SHA" != "$SOURCE_SHA" ]; then
-            echo "::error::Tag's dev-side parent ($TAG_DEV_SHA) != preview-validated sha ($SOURCE_SHA). dev advanced past the validated commit — re-validate preview at the new sha, or cut the tag from the validated commit."
-            exit 1
-          fi
+          echo "Freight record found: $TITLE"
 
       - name: Pre-flight — all validated images exist in GHCR
         run: |
@@ -109,3 +104,20 @@ jobs:
               echo "| $img | $digest |"
             done
           } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Close the freight record
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          # Best-effort bookkeeping: GITHUB_TOKEN cannot write to another repo,
+          # so this uses GHCR_TOKEN (works if it carries repo scope). Failure
+          # loses only the comment+close, never the release.
+          TITLE="validated: ${SOURCE_VERSION} (preview)"
+          NUM=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state open \
+            --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+          if [ -n "$NUM" ] && gh issue close "$NUM" --repo "$DEPLOY_REPO" \
+               --comment "Promoted as \`v${RELEASE_VERSION}\` by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."; then
+            echo "Freight record #$NUM closed."
+          else
+            echo "::warning::Could not close freight record '$TITLE' in $DEPLOY_REPO — close it manually."
+          fi
