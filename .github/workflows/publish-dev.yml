@@ -46,19 +46,27 @@ jobs:
       # ── Freight issue (IssueOps): announce the candidate (opt-in) ──
       # Images publish on EVERY dev merge (E1), but announcing a candidate for
       # validation is a deliberate act — most merges bundle toward a later
-      # validation, not "validate this one now". Opt in by putting [freight] in
-      # the merge commit message; otherwise the image is published silently.
-      # When announced: opens a deploy-repo issue (the deploy work queue),
-      # init-deploy marks it `validated` on green, the release gate requires
-      # that label, the release run closes it. If skipped here, init-deploy's
-      # find-or-create still makes the issue at validation time. Cross-repo
-      # write needs the PAT (GITHUB_TOKEN is repo-scoped); failure only warns.
+      # validation, not "validate this one now". Opt in by ticking the `freight`
+      # label on the PR before merging (clickable, decided pre-merge, auditable
+      # on the PR); otherwise the image is published silently. When announced:
+      # opens a deploy-repo issue (the deploy work queue), init-deploy marks it
+      # `validated` on green, the release gate requires that label, the release
+      # run closes it. If skipped here, init-deploy's find-or-create still makes
+      # the issue at validation time. Cross-repo write needs the PAT
+      # (GITHUB_TOKEN is repo-scoped); failure only warns.
       - name: Open freight issue in the deploy repo
-        if: ${{ contains(github.event.head_commit.message, '[freight]') }}
         env:
           GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
           DEPLOY_REPO: SafeChord/SafeZone-Deploy
         run: |
+          # Resolve the PR merged by this commit and check for the `freight`
+          # label. No PR / not labeled → silent publish.
+          LABELS=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '.[].labels[].name' 2>/dev/null || true)
+          if ! echo "$LABELS" | grep -Fxq "freight"; then
+            echo "PR not labeled 'freight' — image published, no candidate announced."
+            exit 0
+          fi
           TITLE="freight: ${RELEASE_VERSION}"
           EXISTING=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state all \
             --json title --jq '.[].title' || true)
