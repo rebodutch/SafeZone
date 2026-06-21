@@ -49,8 +49,10 @@ jobs:
       # ── Freight issue (IssueOps): announce the candidate ──
       # A push to release/* IS the deliberate act of cutting a candidate, so the
       # freight issue is always opened (no opt-in label). It opens a deploy-repo
-      # issue (the preview work queue); init-deploy marks it `validated` on green,
-      # the release gate requires that label, the release run closes it. On a
+      # issue (the preview work queue); init-deploy posts the automated in-cluster
+      # result there but does NOT stamp `validated` — that label is added by the
+      # /validate-freight skill only on human GATE 2 sign-off. The release gate
+      # requires the label; the release run closes the issue. On a
       # hotfix re-push (A1-pre) the new sha opens a fresh freight and the prior
       # un-validated one is superseded below. Cross-repo write needs the PAT
       # (GITHUB_TOKEN is repo-scoped); failure only warns.
