@@ -11,7 +11,7 @@ name: Create and Publish Release
 # re-runnable mechanic — decoupling them keeps release-tooling iteration from
 # burning product version numbers):
 #   - push tag v*.*.* : normal release; version from the tag, source sha from
-#     the dev->main merge's ^2; live promotion.
+#     the release/*->main merge's ^2; live promotion.
 #   - workflow_dispatch: manual (re-)run / dry-run; version + optional source
 #     sha as inputs; dry-run copies to :<ver>-dryrun and skips the freight close.
 
@@ -87,7 +87,7 @@ jobs:
               exit 1
             fi
             if ! MERGE_PARENT=$(git rev-parse --short=7 "${GITHUB_SHA}^2" 2>/dev/null); then
-              echo "::error::Tagged commit is not a merge commit. Tag the dev->main merge commit."
+              echo "::error::Tagged commit is not a merge commit. Tag the release/*->main merge commit."
               exit 1
             fi
             SOURCE_VERSION="${RELEASE_VERSION}-${MERGE_PARENT}"
@@ -177,7 +177,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          # Symmetry with the freight issue (publish-dev.yml). Freight is the
+          # Symmetry with the freight issue (publish-candidate.yml). Freight is the
           # PREVIEW work queue: machine-gated by the `validated` label, closed
           # just above on promote. THIS is the STAGING work queue — a human-driven
           # Phase D checklist (promote->staging, soak, tag, archive). The machine
@@ -199,4 +199,25 @@ jobs:
           if ! gh issue create --repo "$DEPLOY_REPO" --label release \
                --title "$TITLE" --body "$BODY"; then
             echo "::warning::Could not open staging work-queue issue '$TITLE' in $DEPLOY_REPO. Open it manually (Phase D)."
+          fi
+
+      - name: Open back-merge PR (main -> dev)
+        if: ${{ env.DRY_RUN == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          # C4: propagate release-stage fixes from main back into dev, so dev stays
+          # a superset of every shipped fix before the next release/* is cut (the
+          # back-merge invariant). Uses the PAT (not GITHUB_TOKEN) so the PR triggers
+          # GATE 1 on dev. Best-effort: failure loses only the PR, never the release.
+          TITLE="back-merge: v${RELEASE_VERSION} -> dev"
+          if gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head main --state open \
+               --json number --jq '.[].number' | grep -q .; then
+            echo "Back-merge PR already open."
+            exit 0
+          fi
+          if ! gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head main \
+               --title "$TITLE" \
+               --body "Automated C4 back-merge: propagate release-stage fixes from \`main\` (\`v${RELEASE_VERSION}\`) into \`dev\`. Merge before cutting the next release so dev stays a superset of all shipped fixes (no orphaned fixes)."; then
+            echo "::warning::Could not open back-merge PR '$TITLE' — open it manually (C4)."
           fi
