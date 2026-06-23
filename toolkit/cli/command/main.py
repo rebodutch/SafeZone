@@ -67,7 +67,7 @@ def config():
 
 
 # ---- Database Commands ----
-db_app = typer.Typer(help="Database control commands (init, clear, reset).")
+db_app = typer.Typer(help="Database control commands (init, prune, reset).")
 
 
 @db_app.command()
@@ -82,16 +82,32 @@ def init(
 
 
 @db_app.command()
-@command_handler("db.clear")
-def clear(
+@command_handler("db.prune")
+def prune(
+    year: int = typer.Option(
+        None, "--year", help="Delete covid_cases of this calendar year (e.g. 1970)."
+    ),
+    all_: bool = typer.Option(
+        False, "--all", help="Delete ALL covid_cases records (full truncate)."
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ):
-    """Clear the covid data in the database."""
-    if not yes and not typer.confirm("Are you sure you want to clear the database?"):
+    """Delete covid_cases records (scoped by --year, or --all).
+
+    Affects the covid_cases fact table only; cities/regions/populations are
+    preserved (use `db reset` for a full wipe). A scope is required:
+    --year YYYY (one calendar year) or --all (every record).
+    """
+    if (year is not None) == all_:
+        rich.print("[red]A scope is required: specify exactly one of --year YYYY or --all.[/red]")
+        raise typer.Abort()
+
+    target = "ALL covid cases" if all_ else f"covid cases of year {year}"
+    if not yes and not typer.confirm(f"Are you sure you want to delete {target}?"):
         rich.print("Aborted.")
         raise typer.Abort()
 
-    return DBClient().clear()
+    return DBClient().prune(year=year, all_=all_)
 
 
 @db_app.command()

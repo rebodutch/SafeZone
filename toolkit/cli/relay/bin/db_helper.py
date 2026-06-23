@@ -45,10 +45,13 @@ def reset_db():
     init_db()
 
 
-def clear_db():
+def prune_cases(year: int = None, all_: bool = False):
     """
-    Clear the covid data in database.
+    Prune covid_cases records (the fact table only; dimensions are preserved).
 
+    Exactly one scope is expected:
+    - year: delete only the given calendar year's rows.
+    - all_: truncate every covid_cases record (full wipe).
     """
     # init the session
     engine = create_engine(DB_URL)
@@ -56,7 +59,17 @@ def clear_db():
     metadata.create_all(engine)
 
     with Session(engine) as session:
-        session.execute(text("TRUNCATE TABLE covid_cases RESTART IDENTITY CASCADE;"))
+        if all_:
+            session.execute(
+                text("TRUNCATE TABLE covid_cases RESTART IDENTITY CASCADE;")
+            )
+        else:
+            session.execute(
+                text(
+                    "DELETE FROM covid_cases WHERE date >= :start AND date < :end;"
+                ),
+                {"start": f"{year}-01-01", "end": f"{year + 1}-01-01"},
+            )
         session.commit()
 
 
