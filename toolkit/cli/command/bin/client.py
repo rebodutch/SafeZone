@@ -15,6 +15,7 @@ from utils.pydantic_model.request import (
     SetTimeModel,
     HealthCheckModel,
     DBInitModel,
+    DBPruneModel,
 )
 from utils.pydantic_model.response import (
     APIResponse,
@@ -181,8 +182,13 @@ class DBClient(BaseAuthClient):
             request_model=DBInitModel,
         )
 
-    def clear(self):
-        return self.auth_request(method="POST", path="db/clear")
+    def prune(self, year: int = None, all_: bool = False):
+        return self.auth_request(
+            method="POST",
+            path="db/prune",
+            payload=DBPruneModel(year=year, all=all_).model_dump(mode="json"),
+            request_model=DBPruneModel,
+        )
 
     def reset(self):
         return self.auth_request(method="POST", path="db/reset")

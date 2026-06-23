@@ -138,10 +138,10 @@ def run_flow(csv_path, max_retries, interval):
 
 
 def cleanup():
-    """Teardown: clean smoke test data from DB."""
-    print("\n--- Cleanup: clearing test data ---")
+    """Teardown: prune only the smoke-test window (year 1970) from DB."""
+    print("\n--- Cleanup: pruning smoke-test cases (year 1970) ---")
     result = subprocess.run(
-        "szcli -o json db clear --yes", shell=True, capture_output=True, text=True
+        "szcli -o json db prune --year 1970 --yes", shell=True, capture_output=True, text=True
     )
     if result.returncode == 0:
         print("  Cleanup succeeded.")
