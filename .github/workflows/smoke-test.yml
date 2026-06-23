@@ -21,6 +21,9 @@ jobs:
       - name: Set up dynamic VERSION variable
         run: echo "VERSION=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
 
+      - name: Verify smoke-fixture consistency across env datasets
+        run: make check-data-fixtures
+
       - name: Run CI (build + test per service)
         run: make ci-all
 

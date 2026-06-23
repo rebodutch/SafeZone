@@ -1,6 +1,6 @@
 .PHONY: help build-all push-all promote-all build-% test-% build-tool-% push-% promote-% \
         test-worker-golang test-dashboard build-tool-cli build-tool-all smoke-test \
-        ci-all ci-% ci-dashboard-v2 ci-worker-golang promote-cli
+        ci-all ci-% ci-dashboard-v2 ci-worker-golang promote-cli check-data-fixtures
 
 # ------------------------
 # 0. global variables
@@ -152,6 +152,11 @@ promote-all: $(addprefix promote-, $(SERVICE_NAMES)) $(addprefix promote-, $(TOO
 # -------------------------
 # 5. End-to-End Tests
 # -------------------------
+check-data-fixtures:
+	@echo "====== Running: Smoke-Fixture Consistency Guard ======"
+	@bash scripts/check-data-fixtures.sh
+	@echo "====== Done: Smoke-Fixture Consistency Guard ======"
+
 smoke-test:
 	@echo "====== Running: End-to-End Smoke Test ======"
 	@COMPOSE_FILE=$(SMOKE_COMPOSE_FILE) VERSION=$(VERSION) \
