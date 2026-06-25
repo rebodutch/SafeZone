@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.7] - 2026-06-25
+
+### Changed
+
+- **Safer data reset (#50)**: The case-data reset command now requires an explicit scope (a single year, or an explicit full wipe) instead of clearing all case data by default, preventing accidental data loss.
+- **Per-environment datasets (#50)**: Test, development, and showcase data are now isolated from one another, so running smoke tests can no longer overwrite seeded showcase data.
+- **Release pipeline**: Release candidates are now built and validated from dedicated release branches before promotion to production.
+
+### Fixed
+
+- **Region drill-down lookups (#48)**: Fixed a character mismatch (臺/台) in region names that prevented some areas from resolving during map drill-down.
+
+## [0.3.6] - 2026-06-13
+
+### Changed
+
+- **Internal delivery/CI improvements** to the release pipeline (image promotion and release-candidate tracking). No application-facing changes.
+
 ## [0.3.5] - 2026-05-25
 
 This release introduces the modern React SPA Dashboard (v2) replacing the legacy Python Dash implementation, decouples Nginx configuration for runtime flexibility, and optimizes the repository's aggregate CI orchestration pipelines.
