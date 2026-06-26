@@ -1,18 +1,21 @@
-name: Publish Dev Images
+name: Publish Release Candidate Images
 
-# E1: on every `dev` merge, publish per-sha dev images to GHCR so the deploy
-# repo's `preview` env has a real artifact to validate BEFORE any version tag
-# is cut. Mirrors release.yml, but the remote tag is the in-flight product
-# version (from the VERSION file) suffixed with the commit sha: 0.X.Y-<sha>.
-# The official 0.X.Y tag is still assigned by the git tag at release time.
+# Phase A2: on every push to a `release/*` branch (the frozen pin), publish
+# per-sha candidate images to GHCR so the deploy repo's `preview` env has a real
+# artifact to validate BEFORE the version tag is cut. The remote tag is the
+# frozen product version (from the VERSION file on the release branch) suffixed
+# with the commit sha: 0.X.Y-<sha>. The official 0.X.Y tag is assigned by the
+# git release tag and promoted digest-identical via crane (release.yml, ADR-1).
+# Every release/* push is a deliberate release candidate, so a freight issue is
+# always opened (no opt-in) — see the freight step below.
 
 on:
   push:
     branches:
-      - dev
+      - 'release/*'
 
 jobs:
-  publish-dev:
+  publish-candidate:
     runs-on: self-hosted
 
     steps:
@@ -40,33 +43,24 @@ jobs:
       - name: Build Toolkit Images
         run: make build-tool-all
 
-      - name: Tag and Push all images as dev (0.X.Y-<sha>)
+      - name: Tag and Push all candidate images (0.X.Y-<sha>)
         run: make push-all
 
-      # ── Freight issue (IssueOps): announce the candidate (opt-in) ──
-      # Images publish on EVERY dev merge (E1), but announcing a candidate for
-      # validation is a deliberate act — most merges bundle toward a later
-      # validation, not "validate this one now". Opt in by ticking the `freight`
-      # label on the PR before merging (clickable, decided pre-merge, auditable
-      # on the PR); otherwise the image is published silently. When announced:
-      # opens a deploy-repo issue (the deploy work queue), init-deploy marks it
-      # `validated` on green, the release gate requires that label, the release
-      # run closes it. If skipped here, init-deploy's find-or-create still makes
-      # the issue at validation time. Cross-repo write needs the PAT
+      # ── Freight issue (IssueOps): announce the candidate ──
+      # A push to release/* IS the deliberate act of cutting a candidate, so the
+      # freight issue is always opened (no opt-in label). It opens a deploy-repo
+      # issue (the preview work queue); init-deploy posts the automated in-cluster
+      # result there but does NOT stamp `validated` — that label is added by the
+      # /validate-freight skill only on human GATE 2 sign-off. The release gate
+      # requires the label; the release run closes the issue. On a
+      # hotfix re-push (A1-pre) the new sha opens a fresh freight and the prior
+      # un-validated one is superseded below. Cross-repo write needs the PAT
       # (GITHUB_TOKEN is repo-scoped); failure only warns.
       - name: Open freight issue in the deploy repo
         env:
           GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
           DEPLOY_REPO: SafeChord/SafeZone-Deploy
         run: |
-          # Resolve the PR merged by this commit and check for the `freight`
-          # label. No PR / not labeled → silent publish.
-          LABELS=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
-            --jq '.[].labels[].name' 2>/dev/null || true)
-          if ! echo "$LABELS" | grep -Fxq "freight"; then
-            echo "PR not labeled 'freight' — image published, no candidate announced."
-            exit 0
-          fi
           TITLE="freight: ${RELEASE_VERSION}"
           EXISTING=$(gh issue list --repo "$DEPLOY_REPO" --label freight --state all \
             --json title --jq '.[].title' || true)

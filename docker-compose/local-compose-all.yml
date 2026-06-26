@@ -130,7 +130,7 @@ services:
   pandemic-simulator:
     image: safezone-pandemic-simulator:${VERSION}
     volumes:
-      - ../data/smoke-test:/data
+      - ../data/dev:/data
     env_file:
       - ../services/pandemic-simulator/.env.example
     environment:

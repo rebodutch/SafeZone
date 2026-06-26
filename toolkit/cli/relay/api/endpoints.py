@@ -15,7 +15,7 @@ import bin.db_helper as db_helper
 import bin.time_helper as time_helper
 import bin.health_helper as health_helper
 import bin.service_helper as service_helper
-from utils.pydantic_model.request import SimulateModel, SetTimeModel, DBInitModel
+from utils.pydantic_model.request import SimulateModel, SetTimeModel, DBInitModel, DBPruneModel
 from utils.pydantic_model.request import VerifyModel, HealthCheckModel
 from utils.pydantic_model.response import APIResponse, HealthResponse, AnalyticsAPIResponse
 from utils.pydantic_model.response import SystemDateResponse, MocktimeStatusResponse
@@ -297,27 +297,28 @@ async def db_init(
         )
 
 
-@router.post("/db/clear", response_model=APIResponse)
-async def db_clear(
+@router.post("/db/prune", response_model=APIResponse)
+async def db_prune(
+    payload: DBPruneModel,
     role=Depends(get_role),
 ):
     whitelist_check(role, ["admin"])
     try:
-        logger.debug("Received request to db/clear model.")
+        logger.debug("Received request to db/prune model.")
 
-        db_helper.clear_db()
+        db_helper.prune_cases(year=payload.year, all_=payload.all)
 
-        return APIResponse(success=True, message="Database cleared successfully.")
+        return APIResponse(success=True, message="Covid cases pruned successfully.")
 
     except Exception as e:
-        logger.error(f"Database clearing failed: {str(e)}")
+        logger.error(f"Covid cases pruning failed: {str(e)}")
 
         return APIResponse(
             success=False,
-            message="Database clearing failed.",
+            message="Covid cases pruning failed.",
             errors={
                 "field": "Unknown",
-                "summary": "Database clearing failed.",
+                "summary": "Covid cases pruning failed.",
                 "detail": str(e),
             },
         )
