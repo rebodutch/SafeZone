@@ -27,7 +27,7 @@ The code in this repository is not just about making features work; it's about c
 ## **💻 Tech Stack**
 
 * **Backend**: Python (FastAPI, Pydantic), Go  
-* **Frontend**: Plotly Dash  
+* **Frontend**: React SPA (Vite, React 19, TypeScript), MapLibre GL  
 * **Data Layer**: PostgreSQL, Redis, Kafka  
 * **Testing**: Pytest, Docker Compose  
 * **Build**: Docker, Make
